@@ -678,9 +678,10 @@
             </button>
         </section>
 
-        <section id="managerActionsSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600" style="display: none;"> <!-- Reduced mb and p -->
+        <!-- Manager Actions Section (Owner Only) -->
+        <section id="managerActionsSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600" style="display: none;">
             <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Manager Actions <span class="italic text-gray-400 text-xs sm:text-base">(Owner Only)</span></h2>
-            <p class="text-gray-300 mb-2 text-sm">Current Round Status: <span id="managerLotteryStatus" class="font-bold text-green-300">Loading...</span></p> <!-- Manager's view of lottery status -->
+            <p class="text-gray-300 mb-2 text-sm">Current Round Status: <span id="managerLotteryStatus" class="font-bold text-green-300">Loading...</span></p>
             
             <!-- New: Set Ticket Price -->
             <div class="mb-3">
@@ -696,24 +697,28 @@
                 <label for="newRoundDurationSeconds" class="block text-gray-300 text-xs font-medium mb-1.5">Set New Round Duration (Seconds):</label>
                 <input type="number" id="newRoundDurationSeconds" placeholder="e.g., 3600 (1 hour)" min="60" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
             </div>
-            <button id="pickWinnerBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-3 sm:mb-4 text-sm" disabled> <!-- Reduced button padding and font size -->
+            <button id="pickWinnerBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-3 sm:mb-4 text-sm" disabled>
                 Call Contract: Pick Random Winner
             </button>
-            <button id="startNewRoundBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled> <!-- New button -->
+            <button id="startNewRoundBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled>
                 Call Contract: Start New Round
             </button>
+        </section>
 
-            <h3 class="text-lg font-semibold text-green-400 mt-5 mb-3">Community Refund Actions</h3>
+        <!-- NEW: Community Refund Actions Section (Visible to all connected users) -->
+        <section id="communityRefundActionsSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600" style="display: none;">
+            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Community Refund Actions</h2>
             <p class="text-gray-300 text-sm mb-2">
-                This function can be called by anyone once a round is eligible for refunds.
+                If a lottery round ends without a winner and the grace period has passed, anyone can trigger the refund process.
             </p>
             <div class="mb-3">
                 <label for="refundLotteryId" class="block text-gray-300 text-xs font-medium mb-1.5">Lottery ID to Refund:</label>
                 <input type="number" id="refundLotteryId" placeholder="e.g., 1" min="1" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
             </div>
-            <button id="processRefundsBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm">
+            <button id="processRefundsBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled>
                 Call Contract: Process Refunds
             </button>
+            <p id="refundEligibilityMessage" class="text-xs mt-2 text-gray-400 italic">Enter a Lottery ID to check refund eligibility.</p>
         </section>
 
         <section class="p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600"> <!-- Reduced p -->
@@ -1131,8 +1136,10 @@
         const newRoundDurationSecondsInput = document.getElementById('newRoundDurationSeconds'); // New input element
 
         // New elements for processUndrawnRefunds
+        const communityRefundActionsSection = document.getElementById('communityRefundActionsSection'); // NEW
         const refundLotteryIdInput = document.getElementById('refundLotteryId');
         const processRefundsBtn = document.getElementById('processRefundsBtn');
+        const refundEligibilityMessage = document.getElementById('refundEligibilityMessage'); // NEW
 
 
         // --- Lottery Visualization Elements ---
@@ -1293,10 +1300,7 @@
                     clearInterval(countdownInterval);
                     countdownTimerSpan.textContent = "Draw Ready!";
                     visualizationCountdownTimer.textContent = "Draw in: NOW!"; // Update visualization countdown
-                    // Enable pickWinnerBtn if owner and time is up
-                    if (userAddress && userAddress.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase()) {
-                        pickWinnerBtn.disabled = false;
-                    }
+                    // Enable pickWinnerBtn if owner and time is up (this is handled in updateUI now)
                     return;
                 }
 
@@ -1334,9 +1338,10 @@
                 enterLotteryBtn.disabled = true;
                 pickWinnerBtn.disabled = true;
                 startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true; // Disable set ticket price button
+                setTicketPriceBtn.disabled = true;
                 processRefundsBtn.disabled = true; // Disable process refunds button
-                managerActionsSection.style.display = 'none';
+                managerActionsSection.style.display = 'none'; // Hide manager actions
+                communityRefundActionsSection.style.display = 'none'; // Hide community refunds
                 chdpuRewardsSection.style.display = 'none';
 
                 // Visualization elements
@@ -1372,12 +1377,13 @@
                 const currentTicketPriceWei = await lotteryContract.ticketPrice();
                 const players = await lotteryContract.getPlayers();
                 const winnerAddress = await lotteryContract.currentWinner();
-                const ownerFeePercentage = await lotteryContract.ownerFeePercentage();
+                const ownerFeePercentage = await lotteryContract.ownerFeePercentage(); // Not used directly in UI, but good to fetch
                 const prizePoolWei = await lotteryContract.getContractTARABalance();
                 const prizePoolFormatted = ethers.utils.formatEther(prizePoolWei);
-                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries(); // Changed from getIsAcceptingEntries
+                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
                 const roundEndTimeContract = await lotteryContract.roundEndTime();
-                const canStartNewRoundContract = await lotteryContract.canStartNewRound(); // NEW: Fetch canStartNewRound
+                const canStartNewRoundContract = await lotteryContract.canStartNewRound();
+                const REFUND_GRACE_PERIOD_SECONDS = await lotteryContract.REFUND_GRACE_PERIOD_SECONDS(); // Fetch grace period from contract
 
                 lotteryIdSpan.textContent = currentLotteryId.toString();
                 lotteryStatusSpan.textContent = isAcceptingEntriesContract ? 'Open' : 'Closed';
@@ -1388,26 +1394,19 @@
                 startCountdownTimer();
 
                 ticketPriceSpan.textContent = ethers.utils.formatEther(currentTicketPriceWei);
-                // Set the current ticket price in the owner's input field
                 newTicketPriceInput.value = ethers.utils.formatEther(currentTicketPriceWei);
 
-                prizePoolSpan.textContent = prizePoolFormatted; // This is the total contract balance
+                prizePoolSpan.textContent = prizePoolFormatted;
                 numPlayersSpan.textContent = players.length;
 
-                // Calculate TARA for next CHDPU Burn (6% of prize pool)
                 const burnAmountWei = prizePoolWei.mul(ethers.BigNumber.from(6)).div(ethers.BigNumber.from(100));
                 burnAmountSpan.textContent = ethers.utils.formatEther(burnAmountWei);
 
-                // --- FIX START: Ensure lastLotteryResult is always from the most recent completed lottery ---
-                // Find the latest winner from the fetched pastWinners array.
-                // This is crucial for the "Last Prize" header stat.
                 if (pastWinners.length > 0) {
-                    // pastWinners is already sorted by lotteryId ascending, so the last element is the latest
                     lastLotteryResult = pastWinners[pastWinners.length - 1];
                 } else {
                     lastLotteryResult = null;
                 }
-                // --- FIX END ---
 
                 currentWinnerSpan.textContent = winnerAddress === '0x0000000000000000000000000000000000000000' ? 'N/A (No winner yet or reset)' : `${truncateAddress(winnerAddress)}`;
                 currentWinnerAmountSpan.textContent = lastLotteryResult ? `(Won ${lastLotteryResult.prizeAmount} TARA)` : '';
@@ -1444,7 +1443,6 @@
                     winningOddsSpan.textContent = "0.00%";
                 }
 
-                // Update new tracker values
                 cumulativeTaraPrizesSpan.textContent = `${cumulativeTaraPrizes.toFixed(2)} TARA`;
                 if (currentTaraPrice > 0) {
                     cumulativeTaraPrizesUsdSpan.textContent = `(${formatUSD(cumulativeTaraPrizes * currentTaraPrice, 2, 2)})`;
@@ -1453,11 +1451,10 @@
                     cumulativeTaraPrizesUsdSpan.textContent = '';
                     currentPrizePoolUsdSpan.textContent = '';
                 }
-                currentPrizePoolSpan.textContent = `${prizePoolFormatted} TARA`; // This is the total contract balance
+                currentPrizePoolSpan.textContent = `${prizePoolFormatted} TARA`;
                 chdpuRewardsSentSpan.textContent = `0.0 CHDPU`;
 
-                // Update Last Prize tile
-                if (lastLotteryResult) { // Use lastLotteryResult directly here
+                if (lastLotteryResult) {
                     lastPrizeAmountSpan.textContent = `${lastLotteryResult.prizeAmount} TARA`;
                     lastPrizeWinnerSpan.textContent = `(Won by ${truncateAddress(lastLotteryResult.winner)})`;
                 } else {
@@ -1465,7 +1462,7 @@
                     lastPrizeWinnerSpan.textContent = '';
                 }
 
-                // User-specific details - only fetch if wallet is connected and signer is available
+                // User-specific details and section visibility
                 if (userAddress && signer) {
                     currentConnectedUserAddress = userAddress;
                     userTicketsInRoundSpan.textContent = userTickets;
@@ -1477,7 +1474,6 @@
                     const numTickets = parseInt(numTicketsInput.value);
                     const totalCostForTickets = currentTicketPriceWei.mul(numTickets);
 
-                    // Determine if enter button should be enabled
                     const currentTime = Math.floor(Date.now() / 1000);
                     const isTimeForEntries = currentTime < countdownEndTime;
 
@@ -1495,36 +1491,43 @@
                         setStatus("Wallet connected. Ready to play!");
                     }
 
-                    // Manager actions visibility and button states
-                    // Manager actions section is now always visible if connected, but buttons are enabled based on owner status
-                    managerActionsSection.style.display = 'block';
-                    chdpuRewardsSection.style.display = 'flex'; // Assuming this section is also owner-related
+                    // Manager actions visibility (Owner Only)
+                    if (userAddress.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase()) {
+                        managerActionsSection.style.display = 'block';
+                        managerLotteryStatusSpan.textContent = isAcceptingEntriesContract ? 'Open' : 'Closed';
+                        managerLotteryStatusSpan.className = isAcceptingEntriesContract ? 'font-bold text-green-300' : 'font-bold text-red-300';
 
-                    managerLotteryStatusSpan.textContent = isAcceptingEntriesContract ? 'Open' : 'Closed';
-                    managerLotteryStatusSpan.className = isAcceptingEntriesContract ? 'font-bold text-green-300' : 'font-bold text-red-300';
+                        // Pick Winner button: enabled if owner, entries are closed, and there are players
+                        // Corrected logic: !isAcceptingEntriesContract means round is closed for entries
+                        const canPickWinner = (!isAcceptingEntriesContract) && players.length > 0 && (currentTime >= roundEndTimeContract.toNumber());
+                        pickWinnerBtn.disabled = !canPickWinner;
+                        
+                        // Start New Round button: enabled if owner and contract allows it
+                        startNewRoundBtn.disabled = !canStartNewRoundContract;
 
-                    // Pick Winner button: enabled if owner, entries are closed by time, and there are players
-                    const canPickWinner = (currentTime >= countdownEndTime) && isAcceptingEntriesContract && players.length > 0 && userAddress.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase();
-                    pickWinnerBtn.disabled = !canPickWinner;
-                    
-                    // Start New Round button: enabled if owner and contract allows it
-                    startNewRoundBtn.disabled = !canStartNewRoundContract || userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase();
-
-                    // Set Ticket Price button: enabled if owner
-                    setTicketPriceBtn.disabled = userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase();
-
-                    // Set default value for newRoundDurationSecondsInput if it's empty
-                    if (!newRoundDurationSecondsInput.value || parseInt(newRoundDurationSecondsInput.value) === 0) {
-                        newRoundDurationSecondsInput.value = "3600"; // Default to 1 hour
+                        // Set Ticket Price button and input: enabled if owner AND not accepting entries
+                        setTicketPriceBtn.disabled = isAcceptingEntriesContract;
+                        newTicketPriceInput.disabled = isAcceptingEntriesContract;
+                        
+                        if (!newRoundDurationSecondsInput.value || parseInt(newRoundDurationSecondsInput.value) === 0) {
+                            newRoundDurationSecondsInput.value = "3600"; // Default to 1 hour
+                        }
+                    } else {
+                        managerActionsSection.style.display = 'none'; // Hide if not owner
                     }
 
-                    // Process Refunds button: always enabled as it's public, contract handles eligibility
-                    processRefundsBtn.disabled = false;
-                    // Set default value for refundLotteryIdInput to currentLotteryId - 1 if it's empty
+                    // Community Refund Actions visibility (Any Connected User)
+                    // Set default value for refundLotteryIdInput
                     if (!refundLotteryIdInput.value || parseInt(refundLotteryIdInput.value) === 0) {
+                        // Suggest the previous lottery ID if currentLotteryId > 1
                         refundLotteryIdInput.value = currentLotteryId.toNumber() > 1 ? currentLotteryId.toNumber() - 1 : 1;
                     }
+                    // Trigger refund eligibility check for the default/entered ID
+                    // This will also control the section's visibility
+                    await checkRefundEligibility();
 
+
+                    chdpuRewardsSection.style.display = 'flex'; // Assuming this section is also user-related
 
                     if (currentTime >= countdownEndTime && players.length === 0 && isAcceptingEntriesContract) {
                         setStatus("Round time elapsed with no players. Owner can start a new round.", false);
@@ -1539,33 +1542,28 @@
                     enterLotteryBtn.disabled = true;
                     pickWinnerBtn.disabled = true;
                     startNewRoundBtn.disabled = true;
-                    setTicketPriceBtn.disabled = true; // Ensure disabled if not connected
-                    processRefundsBtn.disabled = true; // Ensure disabled if not connected
-                    managerActionsSection.style.display = 'none';
+                    setTicketPriceBtn.disabled = true;
+                    newTicketPriceInput.disabled = true; // Disable input if not connected
+                    processRefundsBtn.disabled = true;
+                    managerActionsSection.style.display = 'none'; // Hide manager actions
+                    communityRefundActionsSection.style.display = 'none'; // Hide community refunds
                     chdpuRewardsSection.style.display = 'none';
                     setStatus("Connect your wallet to play and see your details.");
                 }
 
                 renderPastWinners();
-                // Initialize/Update Visualization
                 initializeVisualization(players, prizePoolFormatted, roundEndTimeContract.toNumber(), isAcceptingEntriesContract);
 
-                // --- REVISED LOGIC FOR WINNER DISPLAY PERSISTENCE IN LIVE DRAW SECTION ---
-                // This block is responsible for the persistent display of the LAST lottery winner.
-                // It should override the visualization if a winner is available.
                 if (lastLotteryResult) {
                     winningBallAddress.textContent = truncateAddress(lastLotteryResult.winner);
                     winningBallPrize.textContent = `${lastLotteryResult.prizeAmount} TARA`;
-                    winnerDisplay.classList.remove('hidden'); // Show the winner display
+                    winnerDisplay.classList.remove('hidden');
                     visualizationMessage.textContent = `Last Round Winner: ${truncateAddress(lastLotteryResult.winner)} won ${lastLotteryResult.prizeAmount} TARA!`;
-                    stopContinuousVisualizationAnimation(); // Stop ball bouncing when winner is static
+                    stopContinuousVisualizationAnimation();
                 } else {
-                    // If there's no last winner, ensure the winner display is hidden
                     winnerDisplay.classList.add('hidden'); 
                     winningBallAddress.textContent = '';
                     winningBallPrize.textContent = '';
-                    // Reset visualization message if no winner is displayed, to show current round status
-                    // This ensures "Waiting for tickets..." or "Round closed..." is shown if no winner is present.
                     visualizationMessage.textContent = isAcceptingEntriesContract ? `Tickets in draw: ${players.length}` : `Round closed. Waiting for new round. Tickets: ${players.length}`;
                 }
 
@@ -1573,12 +1571,10 @@
             } catch (error) {
                 setStatus(`Error updating UI: ${error.message}. Please check your internet connection and try refreshing.`, true);
                 console.error("UI Update Error:", error);
-                // If it's a network error, force provider re-initialization on next interval
                 if (error.code === ethers.errors.NETWORK_ERROR) {
                     console.error("Network error detected, forcing provider re-initialization.");
-                    provider = null; // Invalidate provider to trigger re-initialization
+                    provider = null;
                 }
-                // Keep public fields as N/A or previous values on error
                 lotteryIdSpan.textContent = "Error";
                 lotteryStatusSpan.textContent = "Error";
                 ticketPriceSpan.textContent = "Error";
@@ -1597,23 +1593,23 @@
                 lastPrizeAmountSpan.textContent = "Error";
                 lastPrizeWinnerSpan.textContent = "";
                 
-                // Also reset user-specific fields on error
                 userTicketsInRoundSpan.textContent = "Error";
                 taraBalanceSpan.textContent = "Error";
                 entryCostSpan.textContent = "Error";
                 enterLotteryBtn.disabled = true;
                 pickWinnerBtn.disabled = true;
                 startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true; // Ensure disabled on error
-                processRefundsBtn.disabled = true; // Ensure disabled on error
+                setTicketPriceBtn.disabled = true;
+                newTicketPriceInput.disabled = true; // Disable input on error
+                processRefundsBtn.disabled = true;
                 managerActionsSection.style.display = 'none';
+                communityRefundActionsSection.style.display = 'none'; // Hide on error
                 chdpuRewardsSection.style.display = 'none';
 
-                // Visualization elements on error
                 visualizationMessage.textContent = "Error loading visualization data.";
                 visualizationCountdownTimer.textContent = "Draw in: Error";
                 visualizationCurrentPrizePoolDisplay.textContent = "Current Prize Pool: Error";
-                winnerDisplay.classList.add('hidden'); // Hide winner display on error
+                winnerDisplay.classList.add('hidden');
             }
         }
 
@@ -2055,9 +2051,11 @@
                     enterLotteryBtn.disabled = true;
                     pickWinnerBtn.disabled = true;
                     startNewRoundBtn.disabled = true;
-                    setTicketPriceBtn.disabled = true; // Disable set ticket price button
-                    processRefundsBtn.disabled = true; // Disable process refunds button
+                    setTicketPriceBtn.disabled = true;
+                    newTicketPriceInput.disabled = true; // Disable input on connection failure
+                    processRefundsBtn.disabled = true;
                     managerActionsSection.style.display = 'none';
+                    communityRefundActionsSection.style.display = 'none';
                     chdpuRewardsSection.style.display = 'none';
                     resetVisualizationDisplay();
                     visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
@@ -2082,9 +2080,11 @@
                                 enterLotteryBtn.disabled = true;
                                 pickWinnerBtn.disabled = true;
                                 startNewRoundBtn.disabled = true;
-                                setTicketPriceBtn.disabled = true; // Disable set ticket price button
-                                processRefundsBtn.disabled = true; // Disable process refunds button
+                                setTicketPriceBtn.disabled = true;
+                                newTicketPriceInput.disabled = true; // Disable input on wrong network
+                                processRefundsBtn.disabled = true;
                                 managerActionsSection.style.display = 'none';
+                                communityRefundActionsSection.style.display = 'none';
                                 chdpuRewardsSection.style.display = 'none';
                                 resetVisualizationDisplay();
                                 visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
@@ -2129,7 +2129,6 @@
                     setStatus(`Please switch your wallet to Taraxa Mainnet (Chain ID ${TARAXA_MAINNET_CHAIN_ID}).`, true);
                     walletConnectSection.classList.remove('hidden');
                     connectedAccountDisplay.classList.add('hidden');
-                    // Reset visualization on wrong network
                     resetVisualizationDisplay();
                     visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
                     return;
@@ -2143,9 +2142,7 @@
                 connectedAddressText.textContent = userAddress;
                 connectedNetworkIdText.textContent = currentNetworkId;
 
-                // Ensure event listeners are set up after contract is initialized with signer
                 setupContractEventListeners();
-
 
                 setStatus("Wallet connected. Fetching personalized details...");
                 await fetchPastWinnersFromContractEvents();
@@ -2178,13 +2175,14 @@
                 enterLotteryBtn.disabled = true;
                 pickWinnerBtn.disabled = true;
                 startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true; // Disable set ticket price button
-                processRefundsBtn.disabled = true; // Disable process refunds button
+                setTicketPriceBtn.disabled = true;
+                newTicketPriceInput.disabled = true; // Disable input on connection failure
+                processRefundsBtn.disabled = true;
                 managerActionsSection.style.display = 'none';
+                communityRefundActionsSection.style.display = 'none';
                 chdpuRewardsSection.style.display = 'none';
                 walletConnectSection.classList.remove('hidden');
                 connectedAccountDisplay.classList.add('hidden');
-                // Reset visualization on connection failure
                 resetVisualizationDisplay();
                 visualizationMessage.textContent = "Wallet connection failed.";
             }
@@ -2208,7 +2206,7 @@
                 const currentTicketPriceWei = await lotteryContract.ticketPrice();
                 const totalCost = currentTicketPriceWei.mul(numTickets);
                 const userTaraBalanceWei = await provider.getBalance(userAddress);
-                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries(); // Changed from getIsAcceptingEntries
+                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
                 const roundEndTimeContract = await lotteryContract.roundEndTime();
                 const currentTime = Math.floor(Date.now() / 1000);
 
@@ -2254,7 +2252,7 @@
                 return;
             }
             
-            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries(); // Changed from getIsAcceptingEntries
+            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
             const roundEndTimeContract = await lotteryContract.roundEndTime();
             const currentTime = Math.floor(Date.now() / 1000);
             const playersCount = (await lotteryContract.getPlayers()).length;
@@ -2263,8 +2261,9 @@
                 setStatus("Cannot pick winner: No players in the current lottery round.", true);
                 return;
             }
-            if (!isAcceptingEntriesContract) {
-                setStatus("Cannot pick winner: Lottery is currently closed for entries. A new round must be started first.", true);
+            // Corrected logic: Pick winner when NOT accepting entries AND time has passed
+            if (isAcceptingEntriesContract) { 
+                setStatus("Cannot pick winner: Lottery is still accepting entries. Wait for round end time.", true);
                 return;
             }
             if (currentTime < roundEndTimeContract.toNumber()) {
@@ -2280,7 +2279,6 @@
                 console.log(`Pick Winner transaction sent: ${tx.hash}`);
                 await tx.wait();
                 setStatus("Winner picked and prize distributed!");
-                // WinnerPicked event listener will handle popup and visualization update
                 updateUI();
             }
             catch (error) {
@@ -2304,7 +2302,6 @@
                 return;
             }
 
-            // Client-side check using the new canStartNewRound view function
             const canStart = await lotteryContract.canStartNewRound();
             if (!canStart) {
                 setStatus("Cannot start new round: Contract logic prevents starting a new round at this time. Either pick a winner or process refunds if undrawn.", true);
@@ -2324,7 +2321,6 @@
                 console.log(`Start New Round transaction sent: ${tx.hash}`);
                 await tx.wait();
                 setStatus("New lottery round started successfully!");
-                // LotteryRoundStarted event listener will handle popup and visualization update
                 updateUI();
             } catch (error) {
                 setStatus(`Failed to start new round: ${error.message}`, true);
@@ -2347,6 +2343,12 @@
                 return;
             }
 
+            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
+            if (isAcceptingEntriesContract) {
+                setStatus("Cannot set ticket price during a live lottery round. Please wait for the round to end.", true);
+                return;
+            }
+
             const newPriceString = newTicketPriceInput.value;
             if (isNaN(parseFloat(newPriceString)) || parseFloat(newPriceString) <= 0) {
                 setStatus("Please enter a valid ticket price greater than 0.", true);
@@ -2361,7 +2363,7 @@
                 console.log(`Set Ticket Price transaction sent: ${tx.hash}`);
                 await tx.wait();
                 setStatus(`Ticket price successfully updated to ${newPriceString} TARA!`);
-                updateUI(); // Refresh UI to show the new price
+                updateUI();
             } catch (error) {
                 setStatus(`Failed to set new ticket price: ${error.message}`, true);
                 console.error("Set ticket price error:", error);
@@ -2370,6 +2372,59 @@
                 hideLoadingSpinner();
             }
         });
+
+        // NEW: Function to check and update refund eligibility message/button
+        async function checkRefundEligibility() {
+            const lotteryIdToRefund = parseInt(refundLotteryIdInput.value);
+            const currentLotteryId = await lotteryContract.lotteryId();
+            const currentTime = Math.floor(Date.now() / 1000);
+            const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
+
+            processRefundsBtn.disabled = true; // Disable by default
+            communityRefundActionsSection.style.display = 'none'; // Hide by default
+
+            if (isNaN(lotteryIdToRefund) || lotteryIdToRefund < 1) {
+                refundEligibilityMessage.textContent = "Enter a Lottery ID to check refund eligibility.";
+                return;
+            }
+
+            if (lotteryIdToRefund >= currentLotteryId.toNumber()) {
+                refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is current or future. Refunds are only for past, undrawn rounds.`;
+                return;
+            }
+
+            try {
+                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
+                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
+                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
+
+                if (isRoundRefunded) {
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has already been refunded.`;
+                } else if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`;
+                } else if (currentTime < historicalRoundEndTime) {
+                    const remainingTime = historicalRoundEndTime - currentTime;
+                    const hours = Math.floor(remainingTime / 3600);
+                    const minutes = Math.floor((remainingTime % 3600) / 60);
+                    const seconds = remainingTime % 60;
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has not ended yet. Time remaining: ${hours}h ${minutes}m ${seconds}s.`;
+                } else if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
+                    const remainingGraceTime = (historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) - currentTime;
+                    const hours = Math.floor(remainingGraceTime / 3600);
+                    const minutes = Math.floor((remainingGraceTime % 3600) / 60);
+                    const seconds = remainingGraceTime % 60;
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is in grace period. Refunds available in: ${hours}h ${minutes}m ${seconds}s.`;
+                } else {
+                    // All conditions met for refund eligibility
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is eligible for refunds! Click the button to process.`;
+                    processRefundsBtn.disabled = false; // Enable the button
+                    communityRefundActionsSection.style.display = 'block'; // Make section visible
+                }
+            } catch (error) {
+                console.error(`Error checking refund eligibility for ID ${lotteryIdToRefund}:`, error);
+                refundEligibilityMessage.textContent = `Error checking eligibility for ID ${lotteryIdToRefund}. It might not be a valid past round.`;
+            }
+        }
 
         processRefundsBtn.addEventListener('click', async () => {
             if (!signer || !lotteryContract || !lotteryContract.signer) {
@@ -2384,20 +2439,50 @@
             }
 
             try {
+                // Perform a final client-side check before sending transaction
+                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
+                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
+                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
+                const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                if (isRoundRefunded) {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} has already been refunded.`, true);
+                    return;
+                }
+                if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`, true);
+                    return;
+                }
+                if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} is not yet eligible for refunds. Grace period not over.`, true);
+                    return;
+                }
+
                 setStatus(`Processing refunds for Lottery ID ${lotteryIdToRefund}...`);
                 showLoadingSpinner();
                 const tx = await lotteryContract.processUndrawnRefunds(lotteryIdToRefund);
                 console.log(`Process Refunds transaction sent: ${tx.hash}`);
                 await tx.wait();
                 setStatus(`Refund process initiated for Lottery ID ${lotteryIdToRefund}. Funds will be sent to eligible players.`);
-                // RoundFullyRefunded event listener will handle the popup and UI update
-                updateUI();
+                updateUI(); // Refresh UI to reflect changes
             } catch (error) {
                 setStatus(`Failed to process refunds: ${error.message}`, true);
                 console.error("Process refunds error:", error);
                 console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
             } finally {
                 hideLoadingSpinner();
+            }
+        });
+
+        // Add event listener for refundLotteryId input to update eligibility message
+        refundLotteryIdInput.addEventListener('input', async () => {
+            if (lotteryContract) { // Only check if contract is initialized
+                await checkRefundEligibility();
+            } else {
+                refundEligibilityMessage.textContent = "Connect wallet to check eligibility.";
+                processRefundsBtn.disabled = true;
+                communityRefundActionsSection.style.display = 'none'; // Hide if no contract
             }
         });
 
@@ -2417,11 +2502,6 @@
 
         // Add event listener for numTickets input to update UI on change
         numTicketsInput.addEventListener('input', updateUI);
-
-        // Removed the complex logic for "Results of Last Draw" button.
-        // It's now a simple scroll link via its href attribute.
-        // No additional JavaScript listener needed for this button's functionality.
-        // The HTML `href="#pastWinnersList"` handles the scrolling.
 
     </script>
 </body>
