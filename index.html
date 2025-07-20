@@ -718,7 +718,7 @@
         
 
         // IMPORTANT: REPLACE WITH YOUR ACTUAL DEPLOYED CONTRACT ADDRESS
-        const CONTRACT_ADDRESS = "0x25dfbee62c441a632dd4d7392d6b0bbb68f75169"; 
+        const CONTRACT_ADDRESS = "0xd5464ffe27c6d0ad77b565b12da7a131f3ac4e03"; 
 
         // IMPORTANT: REPLACE WITH YOUR FULL CONTRACT ABI
         // This is the complete ABI for the PuLotto contract you provided.
@@ -1211,8 +1211,13 @@
                     currentTimestamp = block.timestamp;
                     console.log("Fetched current block timestamp:", currentTimestamp);
                 } catch (blockError) {
+                    console.error("Error fetching latest block timestamp:", blockError);
+                    if (blockError.code === 'NETWORK_ERROR') {
+                        statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                        statusMessage.textContent = `Network Error: Could not connect to Taraxa RPC. Please check your internet connection or try again later.`;
+                        return; // Stop further execution if network is truly down
+                    }
                     console.warn("Could not fetch latest block timestamp from RPC, falling back to local time. Error:", blockError);
-                    // Fallback to local time if RPC fails to get block timestamp
                     currentTimestamp = Math.floor(Date.now() / 1000);
                     statusMessage.textContent = `Warning: Could not fetch real-time block data. Using local time. Error: ${blockError.message}`;
                     statusMessage.className = 'status bg-yellow-900 border-l-4 border-yellow-600 text-yellow-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
@@ -1358,9 +1363,14 @@
                 renderBallVisualization(players, winnerForVisualizationAddress, winnerForVisualizationPrize);
 
             } catch (error) {
-                console.error("Error updating UI:", error);
-                statusMessage.textContent = `Error fetching DApp data: ${error.message}. Please refresh.`;
-                statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                console.error("Error updating UI (Outer Catch):", error);
+                if (error.code === 'NETWORK_ERROR') {
+                    statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                    statusMessage.textContent = `Network Error: Could not connect to Taraxa RPC or contract. Please check your internet connection or try again later.`;
+                } else {
+                    statusMessage.textContent = `Error fetching DApp data: ${error.message}. Please refresh.`;
+                    statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                }
             }
         }
 
