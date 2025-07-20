@@ -2283,4 +2283,242 @@
             try {
                 setStatus("Picking random winner...");
                 showLoadingSpinner();
-                const tx = await lotteryContr
+                const tx = await lotteryContract.pickWinner();
+                console.log(`Pick Winner transaction sent: ${tx.hash}`);
+                await tx.wait();
+                setStatus("Winner picked and prize distributed!");
+                updateUI();
+            }
+            catch (error) {
+                setStatus(`Picking winner failed: ${error.message}`, true);
+                console.error("Pick winner error:", error);
+                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+            } finally {
+                hideLoadingSpinner();
+            }
+        });
+
+        startNewRoundBtn.addEventListener('click', async () => {
+            if (!signer || !lotteryContract || !lotteryContract.signer) {
+                setStatus("Please connect wallet fully and ensure signer is available.", true);
+                return;
+            }
+
+            const contractOwner = await lotteryContract.owner();
+            if (userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase()) {
+                setStatus("Only the contract owner can start a new round.", true);
+                return;
+            }
+
+            const canStart = await lotteryContract.canStartNewRound();
+            if (!canStart) {
+                setStatus("Cannot start new round: Contract logic prevents starting a new round at this time. Either pick a winner or process refunds if undrawn.", true);
+                return;
+            }
+            
+            try {
+                const roundDurationSeconds = parseInt(newRoundDurationSecondsInput.value);
+                if (isNaN(roundDurationSeconds) || roundDurationSeconds < 60) {
+                    setStatus("Please enter a valid round duration (minimum 60 seconds).", true);
+                    return;
+                }
+
+                setStatus(`Starting a new round with ${roundDurationSeconds} seconds duration...`);
+                showLoadingSpinner();
+                const tx = await lotteryContract.startNewRound(roundDurationSeconds);
+                console.log(`Start New Round transaction sent: ${tx.hash}`);
+                await tx.wait();
+                setStatus("New lottery round started successfully!");
+                updateUI();
+            } catch (error) {
+                setStatus(`Failed to start new round: ${error.message}`, true);
+                console.error("Start new round error:", error);
+                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+            } finally {
+                hideLoadingSpinner();
+            }
+        });
+
+        setTicketPriceBtn.addEventListener('click', async () => {
+            if (!signer || !lotteryContract || !lotteryContract.signer) {
+                setStatus("Please connect wallet fully and ensure signer is available.", true);
+                return;
+            }
+
+            const contractOwner = await lotteryContract.owner();
+            if (userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase()) {
+                setStatus("Only the contract owner can set the ticket price.", true);
+                return;
+            }
+
+            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
+            if (isAcceptingEntriesContract) {
+                setStatus("Cannot set ticket price during a live lottery round. Please wait for the round to end.", true);
+                return;
+            }
+
+            const newPriceString = newTicketPriceInput.value;
+            if (isNaN(parseFloat(newPriceString)) || parseFloat(newPriceString) <= 0) {
+                setStatus("Please enter a valid ticket price greater than 0.", true);
+                return;
+            }
+
+            try {
+                const newPriceWei = ethers.utils.parseEther(newPriceString);
+                setStatus(`Setting new ticket price to ${newPriceString} TARA...`);
+                showLoadingSpinner();
+                const tx = await lotteryContract.setTicketPrice(newPriceWei);
+                console.log(`Set Ticket Price transaction sent: ${tx.hash}`);
+                await tx.wait();
+                setStatus(`Ticket price successfully updated to ${newPriceString} TARA!`);
+                updateUI();
+            } catch (error) {
+                setStatus(`Failed to set new ticket price: ${error.message}`, true);
+                console.error("Set ticket price error:", error);
+                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+            } finally {
+                hideLoadingSpinner();
+            }
+        });
+
+        // NEW: Function to check and update refund eligibility message/button
+        async function checkRefundEligibility() {
+            // Only attempt to check eligibility if a wallet is connected
+            if (!userAddress) {
+                communityRefundActionsSection.style.display = 'none'; // Hide if no wallet connected
+                refundEligibilityMessage.textContent = "Connect your wallet to check refund eligibility.";
+                processRefundsBtn.disabled = true;
+                return;
+            }
+
+            const lotteryIdToRefund = parseInt(refundLotteryIdInput.value);
+            const currentLotteryId = await lotteryContract.lotteryId();
+            const currentTime = Math.floor(Date.now() / 1000);
+            const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
+
+            processRefundsBtn.disabled = true; // Disable by default
+            communityRefundActionsSection.style.display = 'none'; // Hide by default until eligible
+
+            if (isNaN(lotteryIdToRefund) || lotteryIdToRefund < 1) {
+                refundEligibilityMessage.textContent = "Enter a Lottery ID to check refund eligibility.";
+                return;
+            }
+
+            if (lotteryIdToRefund >= currentLotteryId.toNumber()) {
+                refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is current or future. Refunds are only for past, undrawn rounds.`;
+                return;
+            }
+
+            try {
+                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
+                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
+                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
+
+                if (isRoundRefunded) {
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has already been refunded.`;
+                } else if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`;
+                } else if (currentTime < historicalRoundEndTime) {
+                    const remainingTime = historicalRoundEndTime - currentTime;
+                    const hours = Math.floor(remainingTime / 3600);
+                    const minutes = Math.floor((remainingTime % 3600) / 60);
+                    const seconds = remainingTime % 60;
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has not ended yet. Time remaining: ${hours}h ${minutes}m ${seconds}s.`;
+                } else if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
+                    const remainingGraceTime = (historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) - currentTime;
+                    const hours = Math.floor(remainingGraceTime / 3600);
+                    const minutes = Math.floor((remainingGraceTime % 3600) / 60);
+                    const seconds = remainingGraceTime % 60;
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is in grace period. Refunds available in: ${hours}h ${minutes}m ${seconds}s.`;
+                } else {
+                    // All conditions met for refund eligibility
+                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is eligible for refunds! Click the button to process.`;
+                    processRefundsBtn.disabled = false; // Enable the button
+                    communityRefundActionsSection.style.display = 'block'; // Make section visible
+                }
+            } catch (error) {
+                console.error(`Error checking refund eligibility for ID ${lotteryIdToRefund}:`, error);
+                refundEligibilityMessage.textContent = `Error checking eligibility for ID ${lotteryIdToRefund}. It might not be a valid past round.`;
+            }
+        }
+
+        processRefundsBtn.addEventListener('click', async () => {
+            if (!signer || !lotteryContract || !lotteryContract.signer) {
+                setStatus("Please connect wallet fully and ensure signer is available.", true);
+                return;
+            }
+
+            const lotteryIdToRefund = parseInt(refundLotteryIdInput.value);
+            if (isNaN(lotteryIdToRefund) || lotteryIdToRefund < 1) {
+                setStatus("Please enter a valid Lottery ID to process refunds.", true);
+                return;
+            }
+
+            try {
+                // Perform a final client-side check before sending transaction
+                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
+                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
+                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
+                const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                if (isRoundRefunded) {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} has already been refunded.`, true);
+                    return;
+                }
+                if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`, true);
+                    return;
+                }
+                if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
+                    setStatus(`Lottery ID ${lotteryIdToRefund} is not yet eligible for refunds. Grace period not over.`, true);
+                    return;
+                }
+
+                setStatus(`Processing refunds for Lottery ID ${lotteryIdToRefund}...`);
+                showLoadingSpinner();
+                const tx = await lotteryContract.processUndrawnRefunds(lotteryIdToRefund);
+                console.log(`Process Refunds transaction sent: ${tx.hash}`);
+                await tx.wait();
+                setStatus(`Refund process initiated for Lottery ID ${lotteryIdToRefund}. Funds will be sent to eligible players.`);
+                updateUI(); // Refresh UI to reflect changes
+            } catch (error) {
+                setStatus(`Failed to process refunds: ${error.message}`, true);
+                console.error("Process refunds error:", error);
+                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+            } finally {
+                hideLoadingSpinner();
+            }
+        });
+
+        // Add event listener for refundLotteryId input to update eligibility message
+        refundLotteryIdInput.addEventListener('input', async () => {
+            if (lotteryContract && userAddress) { // Only check if contract is initialized AND wallet is connected
+                await checkRefundEligibility();
+            } else {
+                refundEligibilityMessage.textContent = "Connect your wallet to check refund eligibility.";
+                processRefundsBtn.disabled = true;
+                communityRefundActionsSection.style.display = 'none'; // Hide if no contract or no wallet
+            }
+        });
+
+
+        refreshDetailsBtn.addEventListener('click', updateUI);
+
+        // Toggle players list visibility
+        togglePlayersListBtn.addEventListener('click', () => {
+            if (playersList.style.display === 'none' || playersList.style.display === '') {
+                playersList.style.display = 'block';
+                togglePlayersListBtn.textContent = 'Hide All Tickets';
+            } else {
+                playersList.style.display = 'none';
+                togglePlayersListBtn.textContent = 'Show All Tickets';
+            }
+        });
+
+        // Add event listener for numTickets input to update UI on change
+        numTicketsInput.addEventListener('input', updateUI);
+
+    </script>
+</body>
+</html>
