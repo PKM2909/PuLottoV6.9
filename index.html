@@ -718,7 +718,7 @@
         
 
         // IMPORTANT: REPLACE WITH YOUR ACTUAL DEPLOYED CONTRACT ADDRESS
-        const CONTRACT_ADDRESS = "0xaAC33b84e5D90791beaCDe9F78F6FE76D6cB436E"; 
+        const CONTRACT_ADDRESS = "0x25dfbee62c441a632dd4d7392d6b0bbb68f75169"; 
 
         // IMPORTANT: REPLACE WITH YOUR FULL CONTRACT ABI
         // This is the complete ABI for the PuLotto contract you provided.
@@ -1218,18 +1218,12 @@
                     statusMessage.className = 'status bg-yellow-900 border-l-4 border-yellow-600 text-yellow-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
                 }
 
-                // Fetch prices (placeholder, integrate real API)
-                // This is a placeholder. You'd typically fetch this from a CoinGecko API or similar.
-                // For example: fetch('https://api.coingecko.com/api/v3/simple/price?ids=taraxa&vs_currencies=usd')
-                // .then(response => response.json()).then(data => TARA_USD_PRICE = data.taraxa.usd);
-                // Similarly for CHDPU price.
-                headerChdpuPrice.textContent = `${CHDPU_USD_PRICE.toFixed(9)} USD`; // Display placeholder price
-
+                // Fetch all contract state variables in parallel
                 const [
                     lotteryId,
                     ticketPrice,
                     players,
-                    currentWinner,
+                    contractCurrentWinner, // Renamed to avoid conflict with `currentWinner` for UI display
                     contractBalance,
                     isOpenForEntries,
                     roundEndTime,
@@ -1239,7 +1233,7 @@
                     lotteryContract.lotteryId(),
                     lotteryContract.ticketPrice(),
                     lotteryContract.getPlayers(),
-                    lotteryContract.currentWinner(),
+                    lotteryContract.currentWinner(), // This is the winner of the current/last round from contract state
                     lotteryContract.getContractTARABalance(),
                     lotteryContract.getIsOpenForEntries(),
                     lotteryContract.roundEndTime(),
@@ -1259,19 +1253,19 @@
                 numPlayersSpan.textContent = players.length.toString();
 
                 // Update lottery status
-                if (isOpenForEntries && (currentTimestamp < roundEndTime.toNumber())) { // Use currentTimestamp here
+                if (isOpenForEntries && (currentTimestamp < roundEndTime.toNumber())) {
                     lotteryStatusSpan.textContent = "Open for Entries";
                     lotteryStatusSpan.classList.remove('text-red-300', 'text-yellow-300');
                     lotteryStatusSpan.classList.add('text-green-300');
-                } else if (!isOpenForEntries && currentWinner !== ethers.constants.AddressZero) {
+                } else if (!isOpenForEntries && contractCurrentWinner !== ethers.constants.AddressZero) {
                     lotteryStatusSpan.textContent = "Winner Picked (Round Closed)";
                     lotteryStatusSpan.classList.remove('text-green-300', 'text-yellow-300');
                     lotteryStatusSpan.classList.add('text-red-300');
-                } else if (!isOpenForEntries && currentWinner === ethers.constants.AddressZero) {
+                } else if (!isOpenForEntries && contractCurrentWinner === ethers.constants.AddressZero) {
                     lotteryStatusSpan.textContent = "Awaiting New Round Start";
                     lotteryStatusSpan.classList.remove('text-green-300', 'text-yellow-300');
                     lotteryStatusSpan.classList.add('text-red-300');
-                } else if (currentTimestamp >= roundEndTime.toNumber() && isOpenForEntries) { // Use currentTimestamp here
+                } else if (currentTimestamp >= roundEndTime.toNumber() && isOpenForEntries) {
                     lotteryStatusSpan.textContent = "Ready for Draw";
                     lotteryStatusSpan.classList.remove('text-green-300', 'text-red-300');
                     lotteryStatusSpan.classList.add('text-yellow-300');
@@ -1281,23 +1275,20 @@
 
 
                 // Calculate burn amount for next CHDPU burn (6% of ticket price per ticket)
-                // Assuming 6% of ticketPrice goes to burn.
                 const burnPerTicket = ticketPrice.mul(6).div(100);
                 burnAmountSpan.textContent = formatTARA(burnPerTicket) + ' TARA';
 
                 // Update CHDPU rewards sent (placeholder, needs actual contract logic for this)
-                // This value would ideally come from a separate contract or off-chain calculation
                 const totalChdpuRewards = ethers.utils.parseEther("0"); // Placeholder
                 chdpuRewardsSent.textContent = formatCHDPU(totalChdpuRewards) + ' CHDPU';
                 chdpuRewardsSection.style.display = 'flex'; // Show this section
 
                 // Countdown Timer
-                if (roundEndTime.gt(currentTimestamp)) { // Use currentTimestamp here
+                if (roundEndTime.gt(currentTimestamp)) {
                     const remainingSeconds = roundEndTime.sub(currentTimestamp).toNumber();
                     let hours = Math.floor(remainingSeconds / 3600);
                     let minutes = Math.floor((remainingSeconds % 3600) / 60);
                     let seconds = remainingSeconds % 60;
-
                     countdownTimer.textContent = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
                 } else {
                     countdownTimer.textContent = "Draw time reached!";
@@ -1308,7 +1299,6 @@
                 headerCumulativeChdpu.textContent = formatCHDPU(cumulativeChdpuBurn) + ' CHDPU';
                 headerCumulativeUsd.textContent = formatCHDPUUSD(formatCHDPU(cumulativeChdpuBurn));
 
-
                 // Fetch and process past WinnerPicked events
                 const winnerEvents = await lotteryContract.queryFilter("WinnerPicked");
                 const pastWinners = [];
@@ -1317,6 +1307,10 @@
                 // Sort events by block number in descending order to get the latest first
                 winnerEvents.sort((a, b) => b.blockNumber - a.blockNumber);
 
+                let winnerForVisualizationAddress = ethers.constants.AddressZero;
+                let winnerForVisualizationPrize = ethers.BigNumber.from(0);
+
+                // Populate pastWinners array and calculate total prizes
                 for (const event of winnerEvents) {
                     const winnerAddress = event.args._winner;
                     const prizeAmount = event.args._prizeAmount;
@@ -1328,6 +1322,14 @@
                         prize: prizeAmount
                     });
                     totalTaraPrizes = totalTaraPrizes.add(prizeAmount);
+
+                    // If this event matches the current round's winner from contract state, use its prize for visualization
+                    if (contractCurrentWinner !== ethers.constants.AddressZero &&
+                        winnerAddress.toLowerCase() === contractCurrentWinner.toLowerCase() &&
+                        event.args._lotteryId.eq(lotteryId)) {
+                            winnerForVisualizationAddress = winnerAddress;
+                            winnerForVisualizationPrize = prizeAmount;
+                    }
                 }
 
                 console.log("Fetched and processed past winners from contract events:", pastWinners);
@@ -1337,10 +1339,11 @@
                 cumulativeTaraPrizesUsd.textContent = formatUSD(formatTARA(totalTaraPrizes));
 
                 if (pastWinners.length > 0) {
-                    const latestWinner = pastWinners[0]; // The latest winner
+                    const latestWinner = pastWinners[0]; // The latest winner overall
                     lastPrizeAmount.textContent = formatTARA(latestWinner.prize) + ' TARA';
                     lastPrizeWinner.textContent = `(${shortenAddress(latestWinner.address)})`;
 
+                    // Display the winner of the *last completed round* from the events
                     currentWinnerSpan.textContent = shortenAddress(latestWinner.address);
                     currentWinnerAmountSpan.textContent = `(${formatTARA(latestWinner.prize)} TARA)`;
                 } else {
@@ -1351,7 +1354,8 @@
                 }
 
                 renderPastWinners(pastWinners);
-                renderBallVisualization(players, currentWinner);
+                // Pass the specific winner and prize for the current round's visualization
+                renderBallVisualization(players, winnerForVisualizationAddress, winnerForVisualizationPrize);
 
             } catch (error) {
                 console.error("Error updating UI:", error);
@@ -1388,11 +1392,25 @@
         // --- Lottery Visualization ---
         const ballColors = ['color-0', 'color-1', 'color-2', 'color-3', 'color-4', 'color-5'];
 
-        function renderBallVisualization(players, winnerAddress) {
+        function renderBallVisualization(players, winnerAddress, winnerPrize) { // Added winnerPrize argument
             ballArea.innerHTML = ''; // Clear previous balls
             winnerDisplay.innerHTML = ''; // Clear previous winner display
             visualizationMessage.style.display = 'none'; // Hide default message
 
+            // Check if there's a winner to display for the current round
+            if (winnerAddress && winnerAddress !== ethers.constants.AddressZero) {
+                const winnerBall = document.createElement('div');
+                winnerBall.className = 'winner-ball';
+                winnerBall.innerHTML = `
+                    <p>Winner!</p>
+                    <span class="address">${shortenAddress(winnerAddress)}</span>
+                    <span class="prize">${formatTARA(winnerPrize)} TARA</span>
+                `;
+                winnerDisplay.appendChild(winnerBall);
+                return; // Exit as winner is displayed
+            }
+
+            // If no winner for the current round, display players or waiting message
             if (players.length === 0) {
                 visualizationMessage.style.display = 'flex';
                 visualizationMessage.textContent = "Waiting for players...";
@@ -1417,22 +1435,6 @@
                 // Animate balls
                 animateBall(ball);
             });
-
-            // Display winner ball if a winner exists
-            if (winnerAddress && winnerAddress !== ethers.constants.AddressZero) {
-                setTimeout(async () => {
-                    const winnerPrize = await lotteryContract.getContractTARABalance(); // Get current contract balance as prize
-                    ballArea.innerHTML = ''; // Clear all player balls
-                    const winnerBall = document.createElement('div');
-                    winnerBall.className = 'winner-ball';
-                    winnerBall.innerHTML = `
-                        <p>Winner!</p>
-                        <span class="address">${shortenAddress(winnerAddress)}</span>
-                        <span class="prize">${formatTARA(winnerPrize)} TARA</span>
-                    `;
-                    winnerDisplay.appendChild(winnerBall);
-                }, 2000); // Delay winner display slightly
-            }
         }
 
         function animateBall(ball) {
