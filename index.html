@@ -246,6 +246,13 @@
             color: white;
             font-size: 1.2rem;
             text-align: center;
+            visibility: hidden; /* Hidden by default */
+            opacity: 0; /* Hidden by default */
+            transition: visibility 0s, opacity 0.3s linear;
+        }
+        .loading-overlay.show {
+            visibility: visible;
+            opacity: 1;
         }
 
         .loading-spinner-large {
@@ -589,14 +596,6 @@
                     Yes, in future versions. This is one of many upgrades and benefits to CHDPU holders going forward.
                 </p>
             </details>
-
-            <!-- NEW FAQ Item: Refund Policy -->
-            <details class="faq-item">
-                <summary>What if no winner is picked?</summary>
-                <p class="text-gray-300 font-light">
-                    If a lottery round concludes (time runs out) and no winner is picked by the owner, a **1-hour grace period** begins. After this grace period, anyone in the community can trigger a refund process. This will automatically send all TARA contributed by players for that specific round back to their wallets. This ensures your funds are never stuck.
-                </p>
-            </details>
         </details>
 
         <section class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600"> <!-- Reduced mb and p -->
@@ -636,154 +635,94 @@
             </button>
         </section>
 
-        <!-- NEW: Live Lottery Draw Visualization Section -->
-        <details class="mb-6 p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600">
-            <summary class="text-xl font-semibold text-green-400">Live Lottery Draw</summary>
-            <div class="lottery-container bg-gray-800 p-4 rounded-lg shadow-lg text-center mt-4">
-                <h2 class="text-2xl font-bold mb-3">Live Draw Simulation</h2>
-                <p id="visualizationMessage" class="mb-2">Waiting for tickets to be purchased...</p>
-                <p id="visualizationCountdownTimer" class="text-xl font-bold text-green-400 mb-4">Draw in: Calculating...</p>
-                <p id="visualizationCurrentPrizePoolDisplay" class="text-green-300 text-xl font-bold mb-3">Current Prize Pool: 0 TARA</p>
-                
-                <div id="ballArea" class="ball-area">
-                    <!-- Lottery balls will be dynamically added here -->
-                </div>
+        <!-- Lottery Action Section (Enter and Pick Winner) -->
+        <section class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600">
+            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Lottery Actions</h2>
 
-                <div id="winnerDisplay" class="hidden mt-4">
-                    <p class="text-2xl font-semibold mb-2">The Winner Is:</p>
-                    <div id="winningBall" class="ball winner-ball">
-                        <span class="address"></span>
-                        <span class="prize"></span>
-                    </div>
+            <!-- Enter Lottery -->
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-green-300 mb-2">Buy Tickets</h3>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="number" id="numTicketsInput" min="1" max="10" value="1" placeholder="Number of Tickets (1-10)" class="flex-grow p-2 rounded-md bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <button id="enterLotteryBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Buy Ticket(s)
+                    </button>
                 </div>
             </div>
-        </details>
 
-        <section class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600"> <!-- Reduced mb and p -->
-            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Play Lottery</h2>
-            <p class="text-gray-300 font-medium text-sm">Cost per entry: <span id="entryCostSpan" class="font-bold text-green-300">Loading...</span> TARA</p> <!-- Reduced text size -->
-            <p class="mb-2.5 sm:mb-3.5 text-gray-300 font-medium text-sm">Your TARA Balance: <span id="taraBalance" class="font-bold text-green-300">N/A</span> TARA</p> <!-- Reduced mb and text size -->
-            
-            <!-- New: Tickets Bought This Round Display -->
-            <p class="mb-2.5 sm:mb-3.5 text-gray-300 font-medium text-sm">Your Tickets This Round: <span id="userTicketsInRound" class="font-bold text-green-300">0</span></p>
-
-            <div class="mb-3"> <!-- Reduced mb -->
-                <label for="numTickets" class="block text-gray-300 text-xs font-medium mb-1.5">Number of Tickets (1-10):</label> <!-- Reduced text size and mb -->
-                <input type="number" id="numTickets" value="1" min="1" max="10" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"> <!-- Reduced padding and font size -->
-            </div>
-
-            <p class="mb-2.5 sm:mb-3.5 text-gray-300 font-medium text-sm">Your Current Odds: <span id="winningOdds" class="font-bold text-green-300">N/A</span></p> <!-- Reduced mb and text size -->
-            <button id="enterLotteryBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled> <!-- Reduced button padding and font size -->
-                Enter Lottery
-            </button>
-        </section>
-
-        <!-- Manager Actions Section (Owner Only) -->
-        <section id="managerActionsSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600" style="display: none;">
-            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Manager Actions <span class="italic text-gray-400 text-xs sm:text-base">(Owner Only)</span></h2>
-            <p class="text-gray-300 mb-2 text-sm">Current Round Status: <span id="managerLotteryStatus" class="font-bold text-green-300">Loading...</span></p>
-            
-            <!-- New: Set Ticket Price -->
-            <div class="mb-3">
-                <label for="newTicketPrice" class="block text-gray-300 text-xs font-medium mb-1.5">Set New Ticket Price (TARA):</label>
-                <input type="number" id="newTicketPrice" placeholder="e.g., 1750" min="1" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-            </div>
-            <button id="setTicketPriceBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-3 sm:mb-4 text-sm" disabled>
-                Call Contract: Set Ticket Price
-            </button>
-
-            <!-- NEW: Set Round Duration -->
-            <div class="mb-3">
-                <label for="newRoundDurationSeconds" class="block text-gray-300 text-xs font-medium mb-1.5">Set New Round Duration (Seconds):</label>
-                <input type="number" id="newRoundDurationSeconds" placeholder="e.g., 3600 (1 hour)" min="60" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-            </div>
-            <button id="pickWinnerBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-3 sm:mb-4 text-sm" disabled>
-                Call Contract: Pick Random Winner
-            </button>
-            <button id="startNewRoundBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled>
-                Call Contract: Start New Round
-            </button>
-        </section>
-
-        <!-- NEW: Community Refund Actions Section (Visible to all connected users) -->
-        <section id="communityRefundActionsSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600" style="display: none;">
-            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Community Refund Actions</h2>
-            <p class="text-gray-300 text-sm mb-2">
-                If a lottery round ends without a winner and the grace period has passed, anyone can trigger the refund process.
-            </p>
-            <div class="mb-3">
-                <label for="refundLotteryId" class="block text-gray-300 text-xs font-medium mb-1.5">Lottery ID to Refund:</label>
-                <input type="number" id="refundLotteryId" placeholder="e.g., 1" min="1" class="w-full p-1.5 rounded-md bg-gray-800 text-gray-200 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-            </div>
-            <button id="processRefundsBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-sm" disabled>
-                Call Contract: Process Refunds
-            </button>
-            <p id="refundEligibilityMessage" class="text-xs mt-2 text-gray-400 italic">Enter a Lottery ID to check refund eligibility.</p>
-        </section>
-
-        <section class="p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600"> <!-- Reduced p -->
-            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Players in Current Round</h2>
-            <p class="text-gray-300 mb-2 font-medium text-sm"> <!-- Reduced mb and text size -->
-                <span id="uniquePlayersCount" class="font-bold text-green-300">N/A</span> unique players.
-                <button id="togglePlayersListBtn" class="ml-2 text-blue-400 hover:underline text-xs sm:text-sm focus:outline-none font-normal">
-                    Show All Tickets
+            <!-- Pick Winner (Owner Only) -->
+            <div>
+                <h3 class="text-lg font-semibold text-green-300 mb-2">Admin Actions</h3>
+                <button id="pickWinnerBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Pick Winner (Owner Only)
                 </button>
-            </p>
-            <ul id="playersList" class="player-list bg-gray-800 p-2.5 sm:p-3 rounded-md border border-gray-700 h-40 overflow-y-auto text-xs"> <!-- Reduced padding and height, font size -->
-                <li class="text-gray-400 text-xs sm:text-sm">No players yet...</li>
-            </ul>
-        </section>
-
-        <section class="mt-6 sm:mt-8 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600"> <!-- Reduced p -->
-            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Past Lottery Winners</h2>
-            <ul id="pastWinnersList" class="player-list bg-gray-800 p-2.5 sm:p-3 rounded-md border border-gray-700 h-40 overflow-y-auto text-xs"> <!-- Reduced padding and height, font size -->
-                <li class="text-gray-400 text-xs sm:text-sm">No past winners yet...</li>
-            </ul>
-        </section>
-
-        <!-- Re-added: CHDPU Burn Tracker Section with iframe and id for scrolling -->
-        <details id="burnTrackerSection" class="mb-8 p-6 bg-gray-700 rounded-lg shadow-md border border-gray-600">
-            <!-- Updated: Dropdown text -->
-            <summary class="text-2xl font-semibold text-green-400">CHDPU Burn and Rewards Tracker</summary>
-            <div class="mt-4">
-                <iframe class="burn-tracker-iframe" src="https://pu-burn-tracker.vercel.app/" title="CHDPU Burn and Rewards Tracker"></iframe>
+                <button id="startNewRoundBtn" class="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Start New Round (Owner Only)
+                </button>
+                <button id="collectFeesBtn" class="w-full mt-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Collect Owner Fees (Owner Only)
+                </button>
             </div>
-        </details>
+        </section>
 
-        <footer class="mt-5 sm:mt-7 text-center text-xs text-gray-500"> <!-- Reduced mt and text size -->
-            <p class="mb-1">
-                Contract Address: 
-                <a id="footerContractAddressLink" href="https://tarascanly.xyz/address/0xaac33b84e5d90791beacde9f78f6fe76d6cb436e" target="_blank" class="font-medium text-blue-400 break-all hover:underline text-xs">
-                    0xaac33b84e5d90791beacde9f78f6fe76d6cb436e
-                </a>
-            </p>
-            <p>Contract Owner: <span id="footerContractOwnerAddress" class="font-medium text-gray-400 break-all text-xs">0x8335e52eEA3B21C6a2675e6d9cD9525D4B105640</span></p>
-        </footer>
+        <!-- Lottery Visualization Section -->
+        <section class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600 lottery-container">
+            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Lottery Visualization</h2>
+            <div id="ballArea" class="ball-area">
+                <p id="visualizationMessage" class="absolute inset-0 flex items-center justify-center text-lg text-gray-400">Waiting for players...</p>
+            </div>
+            <div id="winnerDisplay" class="text-center mt-4">
+                <!-- Winner will be displayed here -->
+            </div>
+        </section>
+
+        <!-- Past Winners List Section -->
+        <section id="pastWinnersList" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600">
+            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">Past Winners</h2>
+            <div id="pastWinnersContainer" class="player-list max-h-64 overflow-y-auto">
+                <p class="text-gray-400" id="noPastWinnersMessage">No past winners to display yet.</p>
+            </div>
+        </section>
+
+        <!-- CHDPU Burn and Rewards Tracker Section (Scroll Target) -->
+        <section id="burnTrackerSection" class="mb-6 p-4 sm:p-5 bg-gray-700 rounded-lg shadow-md border border-gray-600">
+            <h2 class="text-xl sm:text-2xl font-semibold text-green-400 mb-3 sm:mb-4">CHDPU Burn and Rewards Tracker</h2>
+            <p class="text-gray-300 mb-4">This section would display detailed CHDPU burn and reward data. For this example, we'll use a placeholder iframe or dynamic content.</p>
+            <!-- Placeholder for a more detailed burn tracker, or dynamically loaded content -->
+            <iframe class="burn-tracker-iframe" src="https://placehold.co/600x450/2d3748/e2e8f0?text=CHDPU+Burn+Tracker+Content" title="CHDPU Burn Tracker"></iframe>
+        </section>
 
     </div>
 
-    <!-- Popup Notification HTML -->
-    <div id="popupNotification" class="popup-notification">
-        <p id="popupMessage"></p>
-    </div>
+    <!-- Popup Notification -->
+    <div id="popupNotification" class="popup-notification"></div>
 
     <!-- Transaction Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
+    <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner-large"></div>
-        <p>Confirming transaction...</p>
-        <p class="text-sm mt-2">Please wait, this may take a moment.</p>
+        <p id="loadingMessage">Processing transaction...</p>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        // !!! IMPORTANT: REPLACE THIS WITH YOUR NEWLY DEPLOYED CONTRACT ADDRESS !!!
-        const TARA_LOTTERY_CONTRACT_ADDRESS = "0xaac33b84e5d90791beacde9f78f6fe76d6cb436e"; 
-        const TARAXA_MAINNET_CHAIN_ID = 841; // Taraxa Mainnet Chain ID
-        // !!! IMPORTANT: REPLACE THIS WITH THE ADDRESS YOU USED TO DEPLOY THE CONTRACT !!!
-        const CONTRACT_OWNER_ADDRESS = "0x8335e52eEA3B21C6a2675e6d9cD9525D4B105640"; 
+        // --- Ethers.js and Contract Setup ---
+        // Declare constants before they are used
+        const TARAXA_MAINNET_CHAIN_ID = '0x349'; // Hex for 841 (Taraxa Mainnet)
+        const TARAXA_MAINNET_RPC_URL = 'https://rpc.mainnet.taraxa.io/';
 
-        // --- ABI for PuLotto Contract (Updated to match the new Solidity contract) ---
-        const TARA_LOTTERY_ABI = [
+        // Initialize provider with RPC URL by default for view calls
+        let provider = new ethers.providers.JsonRpcProvider(TARAXA_MAINNET_RPC_URL);
+        let signer;
+        let lotteryContract;
+        let currentAccount = null;
+        let contractOwnerAddress = null; // To store the contract owner's address
+        
+
+        // IMPORTANT: REPLACE WITH YOUR ACTUAL DEPLOYED CONTRACT ADDRESS
+        const CONTRACT_ADDRESS = "0xaAC33b84e5D90791beaCDe9F78F6FE76D6cB436E"; 
+
+        // IMPORTANT: REPLACE WITH YOUR FULL CONTRACT ABI
+        // This is the complete ABI for the PuLotto contract you provided.
+        const CONTRACT_ABI = [
             {
                 "inputs": [
                     { "internalType": "uint256", "name": "_initialTicketPrice", "type": "uint256" },
@@ -797,30 +736,10 @@
                 "anonymous": false,
                 "inputs": [
                     { "indexed": true, "internalType": "uint256", "name": "_lotteryId", "type": "uint256" },
-                    { "indexed": true, "internalType": "address", "name": "_player", "type": "address" },
-                    { "indexed": false, "internalType": "uint256", "name": "_numTickets", "type": "uint256" },
-                    { "indexed": false, "internalType": "uint256", "name": "_totalAmount", "type": "uint256" }
-                ],
-                "name": "TicketPurchased",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    { "indexed": true, "internalType": "uint256", "name": "_lotteryId", "type": "uint256" },
-                    { "indexed": true, "internalType": "uint256", "name": "_roundEndTime", "type": "uint256" },
+                    { "indexed": false, "internalType": "uint256", "name": "_roundEndTime", "type": "uint256" },
                     { "indexed": false, "internalType": "uint256", "name": "_durationSeconds", "type": "uint256" }
                 ],
                 "name": "LotteryRoundStarted",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
-                    { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
-                ],
-                "name": "OwnershipTransferred",
                 "type": "event"
             },
             {
@@ -847,6 +766,17 @@
                     { "indexed": true, "internalType": "uint256", "name": "_lotteryId", "type": "uint256" }
                 ],
                 "name": "RoundFullyRefunded",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    { "indexed": true, "internalType": "uint256", "name": "_lotteryId", "type": "uint256" },
+                    { "indexed": true, "internalType": "address", "name": "_player", "type": "address" },
+                    { "indexed": false, "internalType": "uint256", "name": "_numTickets", "type": "uint256" },
+                    { "indexed": false, "internalType": "uint256", "name": "_totalAmount", "type": "uint256" }
+                ],
+                "name": "TicketPurchased",
                 "type": "event"
             },
             {
@@ -882,6 +812,13 @@
             },
             {
                 "inputs": [],
+                "name": "collectOwnerFees",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
                 "name": "currentRoundDurationSeconds",
                 "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "stateMutability": "view",
@@ -895,9 +832,7 @@
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "_numTickets", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "_numTickets", "type": "uint256" }],
                 "name": "enter",
                 "outputs": [],
                 "stateMutability": "payable",
@@ -907,6 +842,13 @@
                 "inputs": [],
                 "name": "getContractTARABalance",
                 "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getIsOpenForEntries",
+                "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
                 "stateMutability": "view",
                 "type": "function"
             },
@@ -947,15 +889,20 @@
             },
             {
                 "inputs": [],
-                "name": "players",
-                "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }],
+                "name": "ownerFeesCollected",
+                "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "stateMutability": "view",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "_lotteryId", "type": "uint256" }
-                ],
+                "inputs": [],
+                "name": "pickWinner",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{ "internalType": "uint256", "name": "_lotteryId", "type": "uint256" }],
                 "name": "processUndrawnRefunds",
                 "outputs": [],
                 "stateMutability": "nonpayable",
@@ -969,45 +916,35 @@
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "name": "roundEndTimes",
                 "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "stateMutability": "view",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "name": "roundRefunded",
                 "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
                 "stateMutability": "view",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "_newFeePercent", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "_newFeePercent", "type": "uint256" }],
                 "name": "setOwnerFeePercentage",
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "_newPrice", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "_newPrice", "type": "uint256" }],
                 "name": "setTicketPrice",
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "_durationSeconds", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "_roundDurationSeconds", "type": "uint256" }],
                 "name": "startNewRound",
                 "outputs": [],
                 "stateMutability": "nonpayable",
@@ -1021,1504 +958,657 @@
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" },
-                    { "internalType": "address", "name": "", "type": "address" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }, { "internalType": "address", "name": "", "type": "address" }],
                 "name": "totalDepositsPerLottery",
                 "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "stateMutability": "view",
                 "type": "function"
             },
             {
-                "inputs": [
-                    { "internalType": "address", "name": "newOwner", "type": "address" }
-                ],
-                "name": "transferOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" }
-                ],
+                "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
                 "name": "winners",
                 "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
                 "stateMutability": "view",
                 "type": "function"
             },
-            {
-                "stateMutability": "payable",
-                "type": "receive"
-            }
+            { "stateMutability": "payable", "type": "receive" },
+            { "stateMutability": "payable", "type": "fallback" }
         ];
 
-        let provider;
-        let signer;
-        let userAddress;
-        let lotteryContract = null; // Initialize to null
-        let pastWinners = []; // This will now be populated from contract events
-        let countdownInterval;
-        let countdownEndTime; // This will now be fetched from the contract
 
-        // Global variables to store the last lottery result for the button
-        let lastLotteryResult = null; // Stores { lotteryId, winner, prizeAmount }
-        let currentConnectedUserAddress = null; // Stores the currently connected user's address
-
-        // New global variables for the new trackers
-        let cumulativeTaraPrizes = 0;
-        let currentTaraPrice = 0; // New: Global variable to store fetched TARA price
-
-        // Define primary and fallback RPC URLs
-        const PRIMARY_RPC_URL = 'https://rpc.mainnet.taraxa.io/';
-        const FALLBACK_RPC_URL = 'https://841.rpc.thirdweb.com'; // Thirdweb RPC as fallback
-
+        // --- UI Elements ---
         const statusMessage = document.getElementById('statusMessage');
-        const accountAddress = document.getElementById('accountAddress'); // Used for "Not Connected" state
-        const networkId = document.getElementById('networkId'); // Used for "Not Connected" state
-        const lotteryIdSpan = document.getElementById('lotteryId');
-        const lotteryStatusSpan = document.getElementById('lotteryStatus');
-        const ticketPriceSpan = document.getElementById('ticketPrice');
-        const prizePoolSpan = document.getElementById('prizePool');
-        const numPlayersSpan = document.getElementById('numPlayers');
-        const burnAmountSpan = document.getElementById('burnAmount');
-        const currentWinnerSpan = document.getElementById('currentWinner');
-        const currentWinnerAmountSpan = document.getElementById('currentWinnerAmount');
-        const taraBalanceSpan = document.getElementById('taraBalance');
-        const entryCostSpan = document.getElementById('entryCostSpan');
-        const winningOddsSpan = document.getElementById('winningOdds');
-        const countdownTimerSpan = document.getElementById('countdownTimer');
-        const playersList = document.getElementById('playersList');
-        const managerActionsSection = document.getElementById('managerActionsSection');
-        const pastWinnersList = document.getElementById('pastWinnersList');
-        const uniquePlayersCountSpan = document.getElementById('uniquePlayersCount');
-        const togglePlayersListBtn = document.getElementById('togglePlayersListBtn');
-        const numTicketsInput = document.getElementById('numTickets');
-        const managerLotteryStatusSpan = document.getElementById('managerLotteryStatus');
-        const userTicketsInRoundSpan = document.getElementById('userTicketsInRound');
-
         const connectWalletBtn = document.getElementById('connectWalletBtn');
-        const enterLotteryBtn = document.getElementById('enterLotteryBtn');
-        const pickWinnerBtn = document.getElementById('pickWinnerBtn');
-        const refreshDetailsBtn = document.getElementById('refreshDetailsBtn');
-        const startNewRoundBtn = document.getElementById('startNewRoundBtn');
-        const resultsOfLastDrawBtn = document.getElementById('resultsOfLastDrawBtn'); // Now a scroll link
-
-        // Elements for connected state display
-        const walletConnectSection = document.getElementById('walletConnectSection');
+        const accountAddressSpan = document.getElementById('accountAddress');
+        const networkIdSpan = document.getElementById('networkId');
         const connectedAccountDisplay = document.getElementById('connectedAccountDisplay');
         const connectedAddressText = document.getElementById('connectedAddressText');
         const connectedNetworkIdText = document.getElementById('connectedNetworkIdText');
 
-        // Popup elements
-        const popupNotification = document.getElementById('popupNotification');
-        const popupMessage = document.getElementById('popupMessage');
+        const lotteryIdSpan = document.getElementById('lotteryId');
+        const lotteryStatusSpan = document.getElementById('lotteryStatus');
+        const burnAmountSpan = document.getElementById('burnAmount');
+        const ticketPriceSpan = document.getElementById('ticketPrice');
+        const currentWinnerSpan = document.getElementById('currentWinner');
+        const currentWinnerAmountSpan = document.getElementById('currentWinnerAmount');
+        const prizePoolSpan = document.getElementById('prizePool');
+        const numPlayersSpan = document.getElementById('numPlayers');
+        const refreshDetailsBtn = document.getElementById('refreshDetailsBtn');
 
-        // --- Tracker Specific Elements ---
-        const headerChdpuPriceEl = document.getElementById('headerChdpuPrice');
-        const headerCumulativeChdpuEl = document.getElementById('headerCumulativeChdpu');
-        const headerCumulativeUsdEl = document.getElementById('headerCumulativeUsd');
+        const numTicketsInput = document.getElementById('numTicketsInput');
+        const enterLotteryBtn = document.getElementById('enterLotteryBtn');
+        const pickWinnerBtn = document.getElementById('pickWinnerBtn');
+        const startNewRoundBtn = document.getElementById('startNewRoundBtn');
+        const collectFeesBtn = document.getElementById('collectFeesBtn');
 
-        // New elements for the new trackers
-        const cumulativeTaraPrizesSpan = document.getElementById('cumulativeTaraPrizes');
-        const cumulativeTaraPrizesUsdSpan = document.getElementById('cumulativeTaraPrizesUsd');
-        const currentPrizePoolSpan = document.getElementById('currentPrizePool');
-        const currentPrizePoolUsdSpan = document.getElementById('currentPrizePoolUsd');
-        const chdpuRewardsSentSpan = document.getElementById('chdpuRewardsSent');
+        const headerChdpuPrice = document.getElementById('headerChdpuPrice');
+        const headerCumulativeChdpu = document.getElementById('headerCumulativeChdpu');
+        const headerCumulativeUsd = document.getElementById('headerCumulativeUsd');
+        const cumulativeTaraPrizes = document.getElementById('cumulativeTaraPrizes');
+        const cumulativeTaraPrizesUsd = document.getElementById('cumulativeTaraPrizesUsd');
+        const lastPrizeAmount = document.getElementById('lastPrizeAmount');
+        const lastPrizeWinner = document.getElementById('lastPrizeWinner');
+        const currentPrizePool = document.getElementById('currentPrizePool');
+        const currentPrizePoolUsd = document.getElementById('currentPrizePoolUsd');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const chdpuRewardsSent = document.getElementById('chdpuRewardsSent');
         const chdpuRewardsSection = document.getElementById('chdpuRewardsSection');
-        const lastPrizeAmountSpan = document.getElementById('lastPrizeAmount');
-        const lastPrizeWinnerSpan = document.getElementById('lastPrizeWinner');
 
-        // New elements for owner actions (set ticket price, set round duration)
-        const newTicketPriceInput = document.getElementById('newTicketPrice');
-        const setTicketPriceBtn = document.getElementById('setTicketPriceBtn');
-        const newRoundDurationSecondsInput = document.getElementById('newRoundDurationSeconds'); // New input element
-
-        // New elements for processUndrawnRefunds
-        const communityRefundActionsSection = document.getElementById('communityRefundActionsSection'); // NEW
-        const refundLotteryIdInput = document.getElementById('refundLotteryId');
-        const processRefundsBtn = document.getElementById('processRefundsBtn');
-        const refundEligibilityMessage = document.getElementById('refundEligibilityMessage'); // NEW
-
-
-        // --- Lottery Visualization Elements ---
-        const ballArea = document.getElementById('ballArea');
-        const winnerDisplay = document.getElementById('winnerDisplay');
-        const winningBall = document.getElementById('winningBall');
-        const winningBallAddress = winningBall.querySelector('.address');
-        const winningBallPrize = winningBall.querySelector('.prize');
-        const visualizationMessage = document.getElementById('visualizationMessage'); // Renamed from 'message'
-        const visualizationCountdownTimer = document.getElementById('visualizationCountdownTimer'); // Renamed from 'countdownTimer'
-        const visualizationCurrentPrizePoolDisplay = document.getElementById('visualizationCurrentPrizePoolDisplay'); // Renamed from 'currentPrizePoolDisplay'
-
-        const BALL_SIZE = 60; // px
-        let visualizationBalls = []; // Stores ball DOM elements with their state for visualization
-        let visualizationAnimationActive = false;
-        let visualizationAnimationFrameId;
-        let visualizationCountdownInterval;
-        let visualizationCountdownEndTime;
-        let visualizationCurrentPrizePool = 0;
-
-        // NEW: Array of ball colors and their corresponding text colors
-        const BALL_COLOR_PALETTE = [
-            { outer: 'color-0', innerText: '#333' }, // Red (dark text)
-            { outer: 'color-1', innerText: '#333' }, // Blue (dark text)
-            { outer: 'color-2', innerText: 'white' }, // Yellow (white text for contrast on dark inner circle)
-            { outer: 'color-3', innerText: '#333' }, // Green (dark text)
-            { outer: 'color-4', innerText: '#333' }, // Orange (dark text)
-            { outer: 'color-5', innerText: '#333' }  // Purple (dark text)
-        ];
-
-
-        // --- Tracker Configuration ---
-        const CHDPU_CONTRACT_ADDRESS = '0xaad94afea296dcf8c97d05dbf3733a245c3ea78f';
-        const GECKOTERMINAL_TARA_POOL_ADDRESS = '0xadc15d92b40e2142ed30ff7709347c75189c3eab';
-        const TARAXA_NETWORK_ID = 'taraxa';
-        const TARAXA_RPC_URL = 'https://rpc.mainnet.taraxa.io';
-        const GECKOTERMINAL_CHDPU_POOL_ADDRESS = '0x0541b28802cf1eec95a0004eaf804f8e97ad30ca';
-        const GECKOTERMINAL_API_BASE_URL = 'https://api.geckoterminal.com/api/v2';
-        const CHDPU_BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-        const CHDPU_DECIMALS = 18;
-        const BURN_TRACKER_REFRESH_INTERVAL_MS = 60000;
-
-        let currentChdpuPrice = 0;
-
-        // Local storage keys for tracking win/loss notifications (no longer used for button, but kept for reference if needed elsewhere)
-        const LAST_WIN_NOTIFICATION_KEY = 'lastWinNotificationLotteryId';
-        const LAST_NON_WIN_NOTIFICATION_KEY = 'lastNonWinNotificationLotteryId';
-
-        // Loading Overlay Element
+        const popupNotification = document.getElementById('popupNotification');
         const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+
+        const ballArea = document.getElementById('ballArea');
+        const visualizationMessage = document.getElementById('visualizationMessage');
+        const winnerDisplay = document.getElementById('winnerDisplay');
+        const pastWinnersContainer = document.getElementById('pastWinnersContainer');
+        const noPastWinnersMessage = document.getElementById('noPastWinnersMessage');
 
 
-        // --- Helper Functions ---
-        function setStatus(message, isError = false) {
-            statusMessage.textContent = message;
-            statusMessage.className = isError
-                ? 'bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm'
-                : 'bg-blue-900 border-l-4 border-blue-600 text-blue-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+        // --- Price & Formatting ---
+        let TARA_USD_PRICE = 0.00271349; // Default/fallback price
+        let CHDPU_USD_PRICE = 0.000000001; // Placeholder, fetch real price
+
+        function formatTARA(amountWei) {
+            if (!amountWei) return '0.0';
+            return ethers.utils.formatEther(amountWei);
         }
 
-        // Function to show the popup notification
-        function showPopup(message) {
-            popupMessage.textContent = message;
-            popupNotification.classList.add('show');
+        function formatUSD(taraAmount) {
+            if (TARA_USD_PRICE === 0) return '';
+            const usdValue = parseFloat(taraAmount) * TARA_USD_PRICE;
+            return `($${usdValue.toFixed(4)})`;
+        }
+
+        function formatCHDPU(amountWei) {
+            if (!amountWei) return '0.0';
+            // Assuming CHDPU also has 18 decimals like TARA for simplicity, adjust if different
+            return ethers.utils.formatEther(amountWei);
+        }
+
+        function formatCHDPUUSD(chdpuAmount) {
+            if (CHDPU_USD_PRICE === 0) return '';
+            const usdValue = parseFloat(chdpuAmount) * CHDPU_USD_PRICE;
+            return `($${usdValue.toFixed(8)})`;
+        }
+
+        function shortenAddress(address) {
+            if (!address) return 'N/A';
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+
+        // --- UI Feedback Functions ---
+        function showLoadingOverlay(message = "Processing transaction...") {
+            loadingMessage.textContent = message;
+            loadingOverlay.classList.add('show');
+        }
+
+        function hideLoadingOverlay() {
+            loadingOverlay.classList.remove('show');
+        }
+
+        function showNotification(message, type = 'success') {
+            popupNotification.textContent = message;
+            popupNotification.className = 'popup-notification show'; // Reset classes
+            if (type === 'success') {
+                popupNotification.style.backgroundColor = '#10B981'; // Green
+            } else if (type === 'error') {
+                popupNotification.style.backgroundColor = '#EF4444'; // Red
+            } else {
+                popupNotification.style.backgroundColor = '#3B82F6'; // Blue
+            }
             setTimeout(() => {
                 popupNotification.classList.remove('show');
-            }, 5000);
+            }, 3000);
         }
 
-        function showLoadingSpinner() {
-            loadingOverlay.classList.remove('hidden');
-        }
-
-        function hideLoadingSpinner() {
-            loadingOverlay.classList.add('hidden');
-        }
-
-        function truncateAddress(address) {
-            return `${address.substring(0, 6)}...${address.slice(-4)}`;
-        }
-
-        /**
-         * Fetches all past WinnerPicked events from the contract and populates pastWinners array.
-         * This replaces localStorage for past winners.
-         */
-        async function fetchPastWinnersFromContractEvents() {
-            if (!lotteryContract || !provider) {
-                console.warn("Contract or provider not initialized for fetching past winners.");
-                return;
-            }
-
+        // --- Wallet Connection ---
+        async function connectWallet() {
+            showLoadingOverlay("Connecting wallet...");
             try {
-                console.log("Fetching past WinnerPicked events from contract...");
-                // Query all WinnerPicked events from block 0 to the latest
-                const filter = lotteryContract.filters.WinnerPicked();
-                const events = await lotteryContract.queryFilter(filter, 0, 'latest');
+                if (typeof window.ethereum !== 'undefined') {
+                    // Request account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    currentAccount = accounts[0];
 
-                pastWinners = events.map(event => ({
-                    lotteryId: event.args._lotteryId.toString(),
-                    winner: event.args._winner,
-                    prizeAmount: ethers.utils.formatEther(event.args._prizeAmount)
-                }));
+                    // Reassign global provider to Web3Provider
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
 
-                // Sort by lotteryId in ascending order to ensure correct cumulative sum and last winner
-                pastWinners.sort((a, b) => parseInt(a.lotteryId) - parseInt(b.lotteryId));
+                    // Get network details
+                    const network = await provider.getNetwork();
+                    const chainId = '0x' + network.chainId.toString(16); // Convert to hex string
 
-                // Calculate cumulative TARA prizes after fetching all winners
-                cumulativeTaraPrizes = pastWinners.reduce((sum, winner) => sum + parseFloat(winner.prizeAmount), 0);
-                console.log("Fetched and processed past winners from contract events:", pastWinners);
-                console.log("Calculated cumulative TARA prizes:", cumulativeTaraPrizes);
+                    if (chainId !== TARAXA_MAINNET_CHAIN_ID) {
+                        statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                        statusMessage.textContent = `Please connect your wallet to Taraxa Mainnet (Chain ID: ${parseInt(TARAXA_MAINNET_CHAIN_ID, 16)}). You are currently on Chain ID: ${network.chainId}.`;
+                        // Optionally, prompt user to switch network
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: TARAXA_MAINNET_CHAIN_ID }],
+                            });
+                            // If switch is successful, on 'chainChanged' event will re-initialize
+                        } catch (switchError) {
+                            console.error("Failed to switch network:", switchError);
+                            // User rejected network switch or network not added
+                        }
+                        hideLoadingOverlay();
+                        return;
+                    }
 
-                // Set lastLotteryResult from the most recent event
-                if (pastWinners.length > 0) {
-                    lastLotteryResult = pastWinners[pastWinners.length - 1];
+                    // Initialize the contract with signer for write operations
+                    lotteryContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                    // Get contract owner address
+                    contractOwnerAddress = await lotteryContract.owner();
+
+                    statusMessage.className = 'status bg-green-900 border-l-4 border-green-600 text-green-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                    statusMessage.textContent = "Wallet connected successfully to Taraxa Mainnet!";
+                    accountAddressSpan.textContent = shortenAddress(currentAccount);
+                    networkIdSpan.textContent = network.chainId;
+
+                    connectedAddressText.textContent = currentAccount;
+                    connectedNetworkIdText.textContent = network.chainId;
+                    connectedAccountDisplay.classList.remove('hidden');
+                    connectWalletBtn.style.display = 'none'; // Hide connect button
+
+                    // Enable/Disable buttons based on connection and owner status
+                    enterLotteryBtn.disabled = false;
+                    if (currentAccount && contractOwnerAddress && currentAccount.toLowerCase() === contractOwnerAddress.toLowerCase()) {
+                        pickWinnerBtn.disabled = false;
+                        startNewRoundBtn.disabled = false;
+                        collectFeesBtn.disabled = false;
+                        statusMessage.textContent += " (You are the contract owner!)";
+                    } else {
+                        pickWinnerBtn.disabled = true;
+                        startNewRoundBtn.disabled = true;
+                        collectFeesBtn.disabled = true;
+                    }
+
+                    await updateUI(); // Refresh all DApp data
+
                 } else {
-                    lastLotteryResult = null;
+                    statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                    statusMessage.textContent = "MetaMask or other wallet extension not detected. Please install one.";
                 }
-
             } catch (error) {
-                console.error("Error fetching past winners from contract events:", error);
-                setStatus(`Error loading past winners from blockchain: ${error.message}`, true);
-                pastWinners = []; // Clear on error
-                cumulativeTaraPrizes = 0;
-                lastLotteryResult = null;
+                console.error("Error connecting wallet:", error);
+                statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                statusMessage.textContent = `Failed to connect wallet: ${error.message}`;
+            } finally {
+                hideLoadingOverlay();
             }
         }
 
-        function renderPastWinners() {
-            pastWinnersList.innerHTML = '';
-            console.log("Rendering past winners. Current pastWinners array:", pastWinners);
-            if (pastWinners.length > 0) {
-                // Sort by lotteryId in descending order for display
-                const sortedWinners = [...pastWinners].sort((a, b) => parseInt(b.lotteryId) - parseInt(a.lotteryId));
-                sortedWinners.forEach(winnerData => {
-                    const li = document.createElement('li');
-                    li.className = "bg-gray-700 p-1.5 rounded-md shadow-sm mb-1 text-gray-300 break-all text-xs";
-                    li.textContent = `Lottery ID ${winnerData.lotteryId}: Winner ${truncateAddress(winnerData.winner)} won ${winnerData.prizeAmount} TARA`;
-                    pastWinnersList.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.textContent = 'No past winners yet...';
-                li.className = "text-gray-400 italic text-xs";
-                pastWinnersList.appendChild(li);
-            }
-        }
-
-        function startCountdownTimer() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-
-            countdownInterval = setInterval(() => {
-                const now = Math.floor(Date.now() / 1000); // Current time in seconds
-                const distance = countdownEndTime - now; // Time remaining in seconds
-
-                if (distance < 0) {
-                    clearInterval(countdownInterval);
-                    countdownTimerSpan.textContent = "Draw Ready!";
-                    visualizationCountdownTimer.textContent = "Draw in: NOW!"; // Update visualization countdown
-                    // Enable pickWinnerBtn if owner and time is up (this is handled in updateUI now)
-                    return;
-                }
-
-                const hours = Math.floor(distance / 3600);
-                const minutes = Math.floor((distance % 3600) / 60);
-                const seconds = distance % 60;
-
-                const timerText = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
-                countdownTimerSpan.textContent = timerText;
-                visualizationCountdownTimer.textContent = `Draw in: ${timerText}`; // Update visualization countdown
-            }, 1000);
-        }
-
-        async function updateUI() {
-            // Check if provider is initialized.
-            if (!provider) {
-                console.warn("Provider not initialized yet. Skipping UI update for contract data.");
-                setStatus("Connecting to Taraxa network...", false);
-                // Optionally, disable buttons or show loading indicators for contract-dependent elements
-                lotteryIdSpan.textContent = "Loading...";
-                lotteryStatusSpan.textContent = "Loading...";
-                ticketPriceSpan.textContent = "Loading...";
-                prizePoolSpan.textContent = "Loading...";
-                numPlayersSpan.textContent = "Loading...";
-                burnAmountSpan.textContent = "Loading...";
-                currentWinnerSpan.textContent = "N/A";
-                currentWinnerAmountSpan.textContent = "";
-                winningOddsSpan.textContent = "N/A";
-                userTicketsInRoundSpan.textContent = "0";
-                taraBalanceSpan.textContent = "N/A";
-                currentPrizePoolSpan.textContent = "Loading...";
-                currentPrizePoolUsdSpan.textContent = "";
-                lastPrizeAmountSpan.textContent = "N/A";
-                lastPrizeWinnerSpan.textContent = "";
-                enterLotteryBtn.disabled = true;
-                pickWinnerBtn.disabled = true;
-                startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true;
-                newTicketPriceInput.disabled = true;
-                processRefundsBtn.disabled = true; // Disable process refunds button
-                managerActionsSection.style.display = 'none'; // Hide manager actions
-                communityRefundActionsSection.style.display = 'none'; // Hide community refunds
-                chdpuRewardsSection.style.display = 'none';
-
-                // Visualization elements
-                visualizationMessage.textContent = "Connecting to blockchain...";
-                visualizationCountdownTimer.textContent = "Draw in: Loading...";
-                visualizationCurrentPrizePoolDisplay.textContent = "Current Prize Pool: Loading...";
-                // Ensure winner display is hidden if no network
-                winnerDisplay.classList.add('hidden');
-                winningBallAddress.textContent = '';
-                winningBallPrize.textContent = '';
-
-                return; // Exit early if contract is not ready
-            }
-
-            // At the very beginning of updateUI, ensure lotteryContract is correctly instantiated
-            if (userAddress && signer) {
-                // If user is connected, ensure contract is signer-backed
-                lotteryContract = new ethers.Contract(TARA_LOTTERY_CONTRACT_ADDRESS, TARA_LOTTERY_ABI, signer);
-                console.log("lotteryContract (in updateUI) is now signer-backed.");
-            } else {
-                // If no user connected, ensure contract is provider-backed (read-only)
-                lotteryContract = new ethers.Contract(TARA_LOTTERY_CONTRACT_ADDRESS, TARA_LOTTERY_ABI, provider);
-                console.log("lotteryContract (in updateUI) is now provider-backed.");
-            }
-
-            try {
-                // Public data fetches - always attempt these
-                const currentLotteryId = await lotteryContract.lotteryId();
-                const currentTicketPriceWei = await lotteryContract.ticketPrice();
-                const players = await lotteryContract.getPlayers();
-                const winnerAddress = await lotteryContract.currentWinner();
-                const ownerFeePercentage = await lotteryContract.ownerFeePercentage(); // Not used directly in UI, but good to fetch
-                const prizePoolWei = await lotteryContract.getContractTARABalance();
-                const prizePoolFormatted = ethers.utils.formatEther(prizePoolWei);
-                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
-                const roundEndTimeContract = await lotteryContract.roundEndTime();
-                const canStartNewRoundContract = await lotteryContract.canStartNewRound();
-                const REFUND_GRACE_PERIOD_SECONDS = await lotteryContract.REFUND_GRACE_PERIOD_SECONDS(); // Fetch grace period from contract
-
-                lotteryIdSpan.textContent = currentLotteryId.toString();
-                lotteryStatusSpan.textContent = isAcceptingEntriesContract ? 'Open' : 'Closed';
-                lotteryStatusSpan.className = isAcceptingEntriesContract ? 'font-bold text-green-300' : 'font-bold text-red-300';
-
-                // Update countdown timer based on contract's roundEndTime
-                countdownEndTime = roundEndTimeContract.toNumber();
-                startCountdownTimer();
-
-                ticketPriceSpan.textContent = ethers.utils.formatEther(currentTicketPriceWei);
-                newTicketPriceInput.value = ethers.utils.formatEther(currentTicketPriceWei);
-
-                prizePoolSpan.textContent = prizePoolFormatted;
-                numPlayersSpan.textContent = players.length;
-
-                const burnAmountWei = prizePoolWei.mul(ethers.BigNumber.from(6)).div(ethers.BigNumber.from(100));
-                burnAmountSpan.textContent = ethers.utils.formatEther(burnAmountWei);
-
-                if (pastWinners.length > 0) {
-                    lastLotteryResult = pastWinners[pastWinners.length - 1];
+        // --- Event Listeners for Wallet Changes ---
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    currentAccount = accounts[0];
+                    connectWallet(); // Re-run connection logic to update UI and contract instance
                 } else {
-                    lastLotteryResult = null;
-                }
-
-                currentWinnerSpan.textContent = winnerAddress === '0x0000000000000000000000000000000000000000' ? 'N/A (No winner yet or reset)' : `${truncateAddress(winnerAddress)}`;
-                currentWinnerAmountSpan.textContent = lastLotteryResult ? `(Won ${lastLotteryResult.prizeAmount} TARA)` : '';
-
-                playersList.innerHTML = '';
-                let userTickets = 0;
-                if (players.length > 0) {
-                    const uniquePlayers = new Set(players.map(p => p.toLowerCase()));
-                    uniquePlayersCountSpan.textContent = uniquePlayers.size;
-
-                    players.forEach(player => {
-                        const li = document.createElement('li');
-                        li.textContent = player;
-                        li.className = "bg-gray-700 p-1.5 rounded-md shadow-sm mb-1 text-gray-300 break-all text-xs";
-                        playersList.appendChild(li);
-                        if (userAddress && player.toLowerCase() === userAddress.toLowerCase()) {
-                            userTickets++;
-                        }
-                    });
-                } else {
-                    uniquePlayersCountSpan.textContent = 0;
-                    const li = document.createElement('li');
-                    li.textContent = 'No players yet. Be the first!';
-                    li.className = "text-gray-400 italic text-xs";
-                    playersList.appendChild(li);
-                }
-
-                if (players.length > 0 && userTickets > 0) {
-                    const odds = (userTickets / players.length) * 100;
-                    winningOddsSpan.textContent = `${odds.toFixed(2)}%`;
-                } else if (players.length === 0) {
-                    winningOddsSpan.textContent = "Be the first to enter!";
-                } else {
-                    winningOddsSpan.textContent = "0.00%";
-                }
-
-                cumulativeTaraPrizesSpan.textContent = `${cumulativeTaraPrizes.toFixed(2)} TARA`;
-                if (currentTaraPrice > 0) {
-                    cumulativeTaraPrizesUsdSpan.textContent = `(${formatUSD(cumulativeTaraPrizes * currentTaraPrice, 2, 2)})`;
-                    currentPrizePoolUsdSpan.textContent = `(${formatUSD(parseFloat(prizePoolFormatted) * currentTaraPrice, 2, 2)})`;
-                } else {
-                    cumulativeTaraPrizesUsdSpan.textContent = '';
-                    currentPrizePoolUsdSpan.textContent = '';
-                }
-                currentPrizePoolSpan.textContent = `${prizePoolFormatted} TARA`;
-                chdpuRewardsSentSpan.textContent = `0.0 CHDPU`;
-
-                if (lastLotteryResult) {
-                    lastPrizeAmountSpan.textContent = `${lastLotteryResult.prizeAmount} TARA`;
-                    lastPrizeWinnerSpan.textContent = `(Won by ${truncateAddress(lastLotteryResult.winner)})`;
-                } else {
-                    lastPrizeAmountSpan.textContent = 'N/A';
-                    lastPrizeWinnerSpan.textContent = '';
-                }
-
-                // User-specific details and section visibility
-                if (userAddress && signer) {
-                    currentConnectedUserAddress = userAddress;
-                    userTicketsInRoundSpan.textContent = userTickets;
-
-                    const userTaraBalanceWei = await provider.getBalance(userAddress);
-                    taraBalanceSpan.textContent = ethers.utils.formatEther(userTaraBalanceWei);
-                    entryCostSpan.textContent = ethers.utils.formatEther(currentTicketPriceWei);
-
-                    const numTickets = parseInt(numTicketsInput.value);
-                    const totalCostForTickets = currentTicketPriceWei.mul(numTickets);
-
-                    const currentTime = Math.floor(Date.now() / 1000);
-                    const isTimeForEntries = currentTime < countdownEndTime;
-
-                    if (userTaraBalanceWei.lt(totalCostForTickets) || !isAcceptingEntriesContract || !isTimeForEntries) {
-                        enterLotteryBtn.disabled = true;
-                        if (userTaraBalanceWei.lt(totalCostForTickets)) {
-                             setStatus(`Insufficient TARA balance to buy ${numTickets} tickets. Need ${ethers.utils.formatEther(totalCostForTickets)} TARA.`, true);
-                        } else if (!isAcceptingEntriesContract) {
-                            setStatus("Entries are currently closed by contract owner.", true);
-                        } else if (!isTimeForEntries) {
-                            setStatus("Entries are closed as the time limit has been reached.", true);
-                        }
-                    } else {
-                        enterLotteryBtn.disabled = false;
-                        setStatus("Wallet connected. Ready to play!");
-                    }
-
-                    // Manager actions visibility (Owner Only)
-                    if (userAddress.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase()) {
-                        managerActionsSection.style.display = 'block';
-                        managerLotteryStatusSpan.textContent = isAcceptingEntriesContract ? 'Open' : 'Closed';
-                        managerLotteryStatusSpan.className = isAcceptingEntriesContract ? 'font-bold text-green-300' : 'font-bold text-red-300';
-
-                        const playersCount = players.length;
-                        const roundEnded = currentTime >= roundEndTimeContract.toNumber();
-
-                        // Determine if pickWinner should be enabled
-                        let canPickWinner = false;
-                        if (!isAcceptingEntriesContract && playersCount > 0 && roundEnded) {
-                            canPickWinner = true;
-                        }
-                        pickWinnerBtn.disabled = !canPickWinner;
-                        
-                        // Start New Round button: enabled if owner and contract allows it
-                        startNewRoundBtn.disabled = !canStartNewRoundContract;
-
-                        // Set Ticket Price button and input: enabled if owner AND not accepting entries
-                        setTicketPriceBtn.disabled = isAcceptingEntriesContract;
-                        newTicketPriceInput.disabled = isAcceptingEntriesContract;
-                        
-                        if (!newRoundDurationSecondsInput.value || parseInt(newRoundDurationSecondsInput.value) === 0) {
-                            newRoundDurationSecondsInput.value = "3600"; // Default to 1 hour
-                        }
-                    } else {
-                        managerActionsSection.style.display = 'none'; // Hide if not owner
-                    }
-
-                    // Community Refund Actions visibility (Any Connected User)
-                    // Set default value for refundLotteryIdInput
-                    if (!refundLotteryIdInput.value || parseInt(refundLotteryIdInput.value) === 0) {
-                        // Suggest the previous lottery ID if currentLotteryId > 1
-                        refundLotteryIdInput.value = currentLotteryId.toNumber() > 1 ? currentLotteryId.toNumber() - 1 : 1;
-                    }
-                    // Trigger refund eligibility check for the default/entered ID
-                    // This will also control the section's visibility
-                    await checkRefundEligibility();
-
-
-                    chdpuRewardsSection.style.display = 'flex'; // Assuming this section is also user-related
-
-                    if (currentTime >= countdownEndTime && players.length === 0 && isAcceptingEntriesContract) {
-                        setStatus("Round time elapsed with no players. Owner can start a new round.", false);
-                    }
-
-
-                } else {
-                    currentConnectedUserAddress = null;
-                    userTicketsInRoundSpan.textContent = "0";
-                    taraBalanceSpan.textContent = "N/A";
-                    entryCostSpan.textContent = ethers.utils.formatEther(currentTicketPriceWei);
+                    // User disconnected all accounts
+                    currentAccount = null;
+                    // Reset provider to JsonRpcProvider for view calls
+                    provider = new ethers.providers.JsonRpcProvider(TARAXA_MAINNET_RPC_URL);
+                    signer = null;
+                    lotteryContract = null; // Will be re-initialized by updateUI
+                    contractOwnerAddress = null;
+                    accountAddressSpan.textContent = 'Not Connected';
+                    networkIdSpan.textContent = '';
+                    connectedAddressText.textContent = '';
+                    connectedNetworkIdText.textContent = '';
+                    connectedAccountDisplay.classList.add('hidden');
+                    connectWalletBtn.style.display = 'block'; // Show connect button
+                    statusMessage.className = 'status bg-blue-900 border-l-4 border-blue-600 text-blue-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
+                    statusMessage.textContent = "Wallet disconnected. Connect your wallet to get started.";
                     enterLotteryBtn.disabled = true;
                     pickWinnerBtn.disabled = true;
                     startNewRoundBtn.disabled = true;
-                    setTicketPriceBtn.disabled = true;
-                    newTicketPriceInput.disabled = true; // Disable input if not connected
-                    processRefundsBtn.disabled = true;
-                    managerActionsSection.style.display = 'none';
-                    communityRefundActionsSection.style.display = 'none'; // Hide community refunds
-                    chdpuRewardsSection.style.display = 'none';
-                    setStatus("Connect your wallet to play and see your details.");
+                    collectFeesBtn.disabled = true;
+                    updateUI(); // Clear DApp data
                 }
-
-                renderPastWinners();
-                initializeVisualization(players, prizePoolFormatted, roundEndTimeContract.toNumber(), isAcceptingEntriesContract);
-
-                if (lastLotteryResult) {
-                    winningBallAddress.textContent = truncateAddress(lastLotteryResult.winner);
-                    winningBallPrize.textContent = `${lastLotteryResult.prizeAmount} TARA`;
-                    winnerDisplay.classList.remove('hidden');
-                    visualizationMessage.textContent = `Last Round Winner: ${truncateAddress(lastLotteryResult.winner)} won ${lastLotteryResult.prizeAmount} TARA!`;
-                    stopContinuousVisualizationAnimation();
-                } else {
-                    winnerDisplay.classList.add('hidden'); 
-                    winningBallAddress.textContent = '';
-                    winningBallPrize.textContent = '';
-                    visualizationMessage.textContent = isAcceptingEntriesContract ? `Tickets in draw: ${players.length}` : `Round closed. Waiting for new round. Tickets: ${players.length}`;
-                }
-
-
-            } catch (error) {
-                setStatus(`Error updating UI: ${error.message}. Please check your internet connection and try refreshing.`, true);
-                console.error("UI Update Error:", error);
-                if (error.code === ethers.errors.NETWORK_ERROR) {
-                    console.error("Network error detected, forcing provider re-initialization.");
-                    provider = null;
-                }
-                lotteryIdSpan.textContent = "Error";
-                lotteryStatusSpan.textContent = "Error";
-                ticketPriceSpan.textContent = "Error";
-                prizePoolSpan.textContent = "Error";
-                numPlayersSpan.textContent = "Error";
-                burnAmountSpan.textContent = "Error";
-                currentWinnerSpan.textContent = "Error";
-                currentWinnerAmountSpan.textContent = "";
-                winningOddsSpan.textContent = "Error";
-                countdownTimerSpan.textContent = "Error loading timer";
-                cumulativeTaraPrizesSpan.textContent = "Error";
-                cumulativeTaraPrizesUsdSpan.textContent = "";
-                currentPrizePoolSpan.textContent = "Error";
-                currentPrizePoolUsdSpan.textContent = "";
-                chdpuRewardsSentSpan.textContent = "Error";
-                lastPrizeAmountSpan.textContent = "Error";
-                lastPrizeWinnerSpan.textContent = "";
-                
-                userTicketsInRoundSpan.textContent = "Error";
-                taraBalanceSpan.textContent = "Error";
-                entryCostSpan.textContent = "Error";
-                enterLotteryBtn.disabled = true;
-                pickWinnerBtn.disabled = true;
-                startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true;
-                newTicketPriceInput.disabled = true; // Disable input on error
-                processRefundsBtn.disabled = true;
-                managerActionsSection.style.display = 'none';
-                communityRefundActionsSection.style.display = 'none'; // Hide on error
-                chdpuRewardsSection.style.display = 'none';
-
-                visualizationMessage.textContent = "Error loading visualization data.";
-                visualizationCountdownTimer.textContent = "Draw in: Error";
-                visualizationCurrentPrizePoolDisplay.textContent = "Current Prize Pool: Error";
-                winnerDisplay.classList.add('hidden');
-            }
-        }
-
-        // --- Utility Functions for Formatting and API Calls ---
-        function formatUSD(amount, minDecimals = 2, maxDecimals = 2) {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: minDecimals,
-                maximumFractionDigits: maxDecimals
-            }).format(amount);
-        }
-
-        function formatNumber(amount) {
-            return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount);
-        }
-
-        function convertFromWei(rawAmountHex, decimals) {
-            if (!rawAmountHex || rawAmountHex === '0x') return 0;
-            const bigIntAmount = BigInt(rawAmountHex);
-            const divisor = BigInt(10) ** BigInt(decimals);
-            return Number(bigIntAmount) / Number(divisor);
-        }
-
-        /**
-         * Fetches the current $CHDPU price in USD from the GeckoTerminal API.
-         * Updates the `currentChdpuPrice` variable and relevant DOM elements in the header.
-         */
-        async function fetchChdpuPriceAndBurnData() {
-            // Display loading spinner while fetching price
-            headerChdpuPriceEl.innerHTML = 'Loading... <span class="loading-spinner"></span>';
-            headerCumulativeChdpuEl.innerHTML = 'Loading... <span class="loading-spinner"></span>';
-            headerCumulativeUsdEl.textContent = '';
-            
-            try {
-                // Fetch Price for CHDPU (from CHDPU/TARA pool)
-                const chdpuPriceUrl = `${GECKOTERMINAL_API_BASE_URL}/networks/${TARAXA_NETWORK_ID}/pools/${GECKOTERMINAL_CHDPU_POOL_ADDRESS}`;
-                const chdpuPriceResponse = await fetch(chdpuPriceUrl, {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (!chdpuPriceResponse.ok) {
-                    throw new Error(`HTTP error fetching CHDPU price! status: ${chdpuPriceResponse.status}`);
-                }
-                const chdpuPriceData = await chdpuPriceResponse.json();
-                currentChdpuPrice = parseFloat(chdpuPriceData.data.attributes.base_token_price_usd);
-
-                if (isNaN(currentChdpuPrice) || currentChdpuPrice <= 0) {
-                    // Fallback: if direct USD price isn't available, calculate it from TARA price
-                    const chdpuPriceInTara = parseFloat(chdpuPriceData.data.attributes.base_token_price_quote_token);
-                    if (!isNaN(chdpuPriceInTara) && chdpuPriceInTara > 0 && currentTaraPrice > 0) {
-                        currentChdpuPrice = chdpuPriceInTara * currentTaraPrice;
-                    } else {
-                        throw new Error('Invalid CHDPU price data received from GeckoTerminal API.');
-                    }
-                }
-
-                headerChdpuPriceEl.textContent = formatUSD(currentChdpuPrice, 2, 8);
-
-                // Fetch Burned CHDPU from RPC
-                const balanceOfSignature = '0x70a08231';
-                const paddedBurnAddress = CHDPU_BURN_ADDRESS.toLowerCase().replace('0x', '').padStart(64, '0');
-                const data = balanceOfSignature + paddedBurnAddress;
-
-                const rpcResponse = await fetch(TARAXA_RPC_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'eth_call',
-                        params: [{ to: CHDPU_CONTRACT_ADDRESS, data: data }, 'latest'],
-                        id: 1
-                    })
-                });
-
-                if (!rpcResponse.ok) {
-                    throw new Error(`HTTP error fetching burn data! status: ${rpcResponse.status}`);
-                }
-                const rpcResult = await rpcResponse.json();
-
-                if (rpcResult.error) {
-                    throw new Error(`RPC Error fetching burn data: ${rpcResult.error.message}`);
-                }
-
-                const cumulativeBurnedChdpu = convertFromWei(rpcResult.result, CHDPU_DECIMALS);
-                const cumulativeBurnedUsd = cumulativeBurnedChdpu * currentChdpuPrice;
-
-                headerCumulativeChdpuEl.textContent = `${formatNumber(cumulativeBurnedChdpu)} CHDPU`;
-                headerCumulativeUsdEl.textContent = `(${formatUSD(cumulativeBurnedUsd, 2, 2)})`;
-
-            } catch (error) {
-                console.error('Error updating header burn tracker:', error);
-                headerChdpuPriceEl.textContent = 'Error';
-                headerCumulativeChdpuEl.textContent = 'Error';
-                headerCumulativeUsdEl.textContent = '';
-            }
-        }
-
-        /**
-         * Fetches the current TARA price in USD from the GeckoTerminal API.
-         * Updates the `currentTaraPrice` variable.
-         */
-        async function fetchTaraPrice() {
-            try {
-                const taraPriceUrl = `${GECKOTERMINAL_API_BASE_URL}/networks/${TARAXA_NETWORK_ID}/pools/${GECKOTERMINAL_TARA_POOL_ADDRESS}`;
-                const taraPriceResponse = await fetch(taraPriceUrl, {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (!taraPriceResponse.ok) {
-                    throw new Error(`HTTP error fetching TARA price! status: ${taraPriceResponse.status}`);
-                }
-                const taraPriceData = await taraPriceResponse.json();
-                currentTaraPrice = parseFloat(taraPriceData.data.attributes.base_token_price_usd);
-
-                if (isNaN(currentTaraPrice) || currentTaraPrice <= 0) {
-                    throw new Error('Invalid TARA price data received from GeckoTerminal API.');
-                }
-                console.log(`Fetched TARA Price: ${currentTaraPrice}`);
-            } catch (error) {
-                console.error('Error fetching TARA price:', error);
-                currentTaraPrice = 0;
-            }
-        }
-
-        // --- Lottery Visualization Functions (Adapted for Real Data) ---
-        function addVisualizationBall(address, isInitialLoad = false) {
-            const ball = document.createElement('div');
-            
-            // Get color from palette based on current number of balls
-            const colorIndex = visualizationBalls.length % BALL_COLOR_PALETTE.length;
-            const color = BALL_COLOR_PALETTE[colorIndex];
-
-            ball.className = `ball ${color.outer}`;
-            
-            // Create inner span for content
-            const ballContent = document.createElement('span');
-            ballContent.className = 'ball-content';
-            ballContent.textContent = truncateAddress(address);
-            ballContent.style.color = color.innerText; // Set text color based on palette
-            ball.appendChild(ballContent);
-
-            ball.dataset.fullAddress = address;
-
-            const x = Math.random() * (ballArea.offsetWidth - BALL_SIZE);
-            const y = Math.random() * (ballArea.offsetHeight - BALL_SIZE);
-            ball.style.left = `${x}px`;
-            ball.style.top = `${y}px`;
-
-            const vx = (Math.random() - 0.5) * 4;
-            const vy = (Math.random() - 0.5) * 4;
-
-            ballArea.appendChild(ball);
-            visualizationBalls.push({ element: ball, x, y, vx, vy });
-
-            if (!isInitialLoad) {
-                // Only update message if it's a new ticket, not on initial load
-                visualizationMessage.textContent = `Tickets in draw: ${visualizationBalls.length}`;
-            }
-        }
-
-        function animateVisualizationBalls() {
-            visualizationBalls.forEach(ballState => {
-                let { element, x, y, vx, vy } = ballState;
-
-                x += vx;
-                y += vy;
-
-                if (x + BALL_SIZE > ballArea.offsetWidth || x < 0) {
-                    vx *= -1;
-                    x = Math.max(0, Math.min(x, ballArea.offsetWidth - BALL_SIZE));
-                }
-                if (y + BALL_SIZE > ballArea.offsetHeight || y < 0) {
-                    vy *= -1;
-                    y = Math.max(0, Math.min(y, ballArea.offsetHeight - BALL_SIZE));
-                }
-
-                element.style.left = `${x}px`;
-                element.style.top = `${y}px`;
-
-                ballState.x = x;
-                ballState.y = y;
-                ballState.vx = vx;
-                ballState.vy = vy;
             });
 
-            if (!visualizationAnimationFrameId) {
-                visualizationAnimationFrameId = requestAnimationFrame(animateVisualizationBalls);
-            }
+            window.ethereum.on('chainChanged', (chainId) => {
+                console.log("Network changed to:", chainId);
+                connectWallet(); // Re-run connection logic to check network and update UI
+            });
         }
 
-        function startContinuousVisualizationAnimation() {
-            if (!visualizationAnimationFrameId) {
-                animateVisualizationBalls();
-            }
-        }
+        // --- Fetch & Update DApp UI Data ---
+        async function updateUI() {
+            // Ensure lotteryContract is initialized with the correct provider/signer
+            // If signer is available, use it; otherwise, use the default JsonRpcProvider
+            lotteryContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer || provider);
 
-        function stopContinuousVisualizationAnimation() {
-            if (visualizationAnimationFrameId) {
-                cancelAnimationFrame(visualizationAnimationFrameId);
-                visualizationAnimationFrameId = null;
-            }
-        }
-
-        function resetVisualizationDisplay() {
-            stopContinuousVisualizationAnimation();
-            ballArea.innerHTML = '';
-            winnerDisplay.classList.add('hidden'); // Explicitly hide winner display on reset
-            winningBallAddress.textContent = '';
-            winningBallPrize.textContent = '';
-            visualizationBalls = [];
-            visualizationCurrentPrizePool = 0;
-            visualizationCurrentPrizePoolDisplay.textContent = `Current Prize Pool: 0 TARA`;
-            visualizationMessage.textContent = "Waiting for tickets to be purchased...";
-            visualizationAnimationActive = false;
-        }
-
-        function startVisualizationCountdown(endTimeSeconds) {
-            visualizationCountdownEndTime = endTimeSeconds * 1000; // Convert to milliseconds
-
-            if (visualizationCountdownInterval) {
-                clearInterval(visualizationCountdownInterval);
-            }
-
-            visualizationCountdownInterval = setInterval(() => {
-                const now = Date.now();
-                const distance = visualizationCountdownEndTime - now;
-
-                if (distance < 0) {
-                    clearInterval(visualizationCountdownInterval);
-                    visualizationCountdownTimer.textContent = "Draw in: NOW!";
-                    visualizationMessage.textContent = "Draw in progress...";
-                    return;
+            try {
+                // Fetch current block timestamp
+                let currentTimestamp;
+                try {
+                    const block = await provider.getBlock("latest");
+                    currentTimestamp = block.timestamp;
+                    console.log("Fetched current block timestamp:", currentTimestamp);
+                } catch (blockError) {
+                    console.warn("Could not fetch latest block timestamp from RPC, falling back to local time. Error:", blockError);
+                    // Fallback to local time if RPC fails to get block timestamp
+                    currentTimestamp = Math.floor(Date.now() / 1000);
+                    statusMessage.textContent = `Warning: Could not fetch real-time block data. Using local time. Error: ${blockError.message}`;
+                    statusMessage.className = 'status bg-yellow-900 border-l-4 border-yellow-600 text-yellow-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
                 }
 
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                // Fetch prices (placeholder, integrate real API)
+                // This is a placeholder. You'd typically fetch this from a CoinGecko API or similar.
+                // For example: fetch('https://api.coingecko.com/api/v3/simple/price?ids=taraxa&vs_currencies=usd')
+                // .then(response => response.json()).then(data => TARA_USD_PRICE = data.taraxa.usd);
+                // Similarly for CHDPU price.
+                headerChdpuPrice.textContent = `${CHDPU_USD_PRICE.toFixed(9)} USD`; // Display placeholder price
 
-                visualizationCountdownTimer.textContent = `Draw in: ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
-            }, 1000);
-        }
+                const [
+                    lotteryId,
+                    ticketPrice,
+                    players,
+                    currentWinner,
+                    contractBalance,
+                    isOpenForEntries,
+                    roundEndTime,
+                    ownerFeesCollected,
+                    contractOwner
+                ] = await Promise.all([
+                    lotteryContract.lotteryId(),
+                    lotteryContract.ticketPrice(),
+                    lotteryContract.getPlayers(),
+                    lotteryContract.currentWinner(),
+                    lotteryContract.getContractTARABalance(),
+                    lotteryContract.getIsOpenForEntries(),
+                    lotteryContract.roundEndTime(),
+                    lotteryContract.ownerFeesCollected(),
+                    lotteryContract.owner()
+                ]);
 
-        async function simulateDrawEvent(winnerAddress, prizeAmount) {
-            if (visualizationAnimationActive) return;
-            visualizationAnimationActive = true;
-            stopContinuousVisualizationAnimation(); // Stop continuous bouncing
+                // Store owner address for later checks
+                contractOwnerAddress = contractOwner;
 
-            visualizationMessage.textContent = "A winner has been picked! Identifying the lucky ball...";
-            
-            // Step 1: Balls shake (optional, can be removed if not desired)
-            visualizationBalls.forEach(ballState => ballState.element.classList.add('shaking'));
+                lotteryIdSpan.textContent = lotteryId.toString();
+                ticketPriceSpan.textContent = formatTARA(ticketPrice) + ' TARA';
+                prizePoolSpan.textContent = formatTARA(contractBalance) + ' TARA';
+                currentPrizePool.textContent = formatTARA(contractBalance) + ' TARA';
+                currentPrizePoolUsd.textContent = formatUSD(formatTARA(contractBalance));
 
-            setTimeout(() => {
-                visualizationBalls.forEach(ballState => ballState.element.classList.remove('shaking'));
-                visualizationMessage.textContent = "Selecting the lucky ball...";
+                numPlayersSpan.textContent = players.length.toString();
 
-                const selectedBallState = visualizationBalls.find(ballState => ballState.element.dataset.fullAddress.toLowerCase() === winnerAddress.toLowerCase());
+                // Update lottery status
+                if (isOpenForEntries && (currentTimestamp < roundEndTime.toNumber())) { // Use currentTimestamp here
+                    lotteryStatusSpan.textContent = "Open for Entries";
+                    lotteryStatusSpan.classList.remove('text-red-300', 'text-yellow-300');
+                    lotteryStatusSpan.classList.add('text-green-300');
+                } else if (!isOpenForEntries && currentWinner !== ethers.constants.AddressZero) {
+                    lotteryStatusSpan.textContent = "Winner Picked (Round Closed)";
+                    lotteryStatusSpan.classList.remove('text-green-300', 'text-yellow-300');
+                    lotteryStatusSpan.classList.add('text-red-300');
+                } else if (!isOpenForEntries && currentWinner === ethers.constants.AddressZero) {
+                    lotteryStatusSpan.textContent = "Awaiting New Round Start";
+                    lotteryStatusSpan.classList.remove('text-green-300', 'text-yellow-300');
+                    lotteryStatusSpan.classList.add('text-red-300');
+                } else if (currentTimestamp >= roundEndTime.toNumber() && isOpenForEntries) { // Use currentTimestamp here
+                    lotteryStatusSpan.textContent = "Ready for Draw";
+                    lotteryStatusSpan.classList.remove('text-green-300', 'text-red-300');
+                    lotteryStatusSpan.classList.add('text-yellow-300');
+                } else {
+                    lotteryStatusSpan.textContent = "Unknown";
+                }
 
-                if (selectedBallState) {
-                    visualizationBalls.forEach(ballState => {
-                        if (ballState.element !== selectedBallState.element) {
-                            ballState.element.style.opacity = '0';
-                            ballState.element.style.transform = 'scale(0)';
-                        }
+
+                // Calculate burn amount for next CHDPU burn (6% of ticket price per ticket)
+                // Assuming 6% of ticketPrice goes to burn.
+                const burnPerTicket = ticketPrice.mul(6).div(100);
+                burnAmountSpan.textContent = formatTARA(burnPerTicket) + ' TARA';
+
+                // Update CHDPU rewards sent (placeholder, needs actual contract logic for this)
+                // This value would ideally come from a separate contract or off-chain calculation
+                const totalChdpuRewards = ethers.utils.parseEther("0"); // Placeholder
+                chdpuRewardsSent.textContent = formatCHDPU(totalChdpuRewards) + ' CHDPU';
+                chdpuRewardsSection.style.display = 'flex'; // Show this section
+
+                // Countdown Timer
+                if (roundEndTime.gt(currentTimestamp)) { // Use currentTimestamp here
+                    const remainingSeconds = roundEndTime.sub(currentTimestamp).toNumber();
+                    let hours = Math.floor(remainingSeconds / 3600);
+                    let minutes = Math.floor((remainingSeconds % 3600) / 60);
+                    let seconds = remainingSeconds % 60;
+
+                    countdownTimer.textContent = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+                } else {
+                    countdownTimer.textContent = "Draw time reached!";
+                }
+
+                // Update header cumulative burn (placeholder, needs actual data)
+                const cumulativeChdpuBurn = ethers.utils.parseEther("0"); // Placeholder
+                headerCumulativeChdpu.textContent = formatCHDPU(cumulativeChdpuBurn) + ' CHDPU';
+                headerCumulativeUsd.textContent = formatCHDPUUSD(formatCHDPU(cumulativeChdpuBurn));
+
+
+                // Fetch and process past WinnerPicked events
+                const winnerEvents = await lotteryContract.queryFilter("WinnerPicked");
+                const pastWinners = [];
+                let totalTaraPrizes = ethers.BigNumber.from(0);
+
+                // Sort events by block number in descending order to get the latest first
+                winnerEvents.sort((a, b) => b.blockNumber - a.blockNumber);
+
+                for (const event of winnerEvents) {
+                    const winnerAddress = event.args._winner;
+                    const prizeAmount = event.args._prizeAmount;
+                    const lotteryRound = event.args._lotteryId.toNumber();
+
+                    pastWinners.push({
+                        lotteryRound: lotteryRound,
+                        address: winnerAddress,
+                        prize: prizeAmount
                     });
+                    totalTaraPrizes = totalTaraPrizes.add(prizeAmount);
+                }
 
-                    setTimeout(() => {
-                        winningBallAddress.textContent = truncateAddress(winnerAddress);
-                        winningBallPrize.textContent = `${prizeAmount} TARA`; // Ensure prize has TARA unit
-                        winnerDisplay.classList.remove('hidden');
-                        
-                        setTimeout(() => {
-                            winningBall.style.transform = 'scale(1)';
-                            winningBall.style.opacity = '1';
-                            visualizationMessage.textContent = `Congratulations to the winner!`;
-                            visualizationAnimationActive = false;
-                        }, 50);
-                    }, 1000);
+                console.log("Fetched and processed past winners from contract events:", pastWinners);
+                console.log("Calculated cumulative TARA prizes:", totalTaraPrizes.toString());
+
+                cumulativeTaraPrizes.textContent = formatTARA(totalTaraPrizes) + ' TARA';
+                cumulativeTaraPrizesUsd.textContent = formatUSD(formatTARA(totalTaraPrizes));
+
+                if (pastWinners.length > 0) {
+                    const latestWinner = pastWinners[0]; // The latest winner
+                    lastPrizeAmount.textContent = formatTARA(latestWinner.prize) + ' TARA';
+                    lastPrizeWinner.textContent = `(${shortenAddress(latestWinner.address)})`;
+
+                    currentWinnerSpan.textContent = shortenAddress(latestWinner.address);
+                    currentWinnerAmountSpan.textContent = `(${formatTARA(latestWinner.prize)} TARA)`;
                 } else {
-                    visualizationMessage.textContent = "Winner's ticket not found in visualization (may have entered after load).";
-                    visualizationAnimationActive = false;
-                }
-            }, 2000);
-        }
-
-        async function initializeVisualization(players, prizePoolFormatted, roundEndTimeSeconds, isAcceptingEntries) {
-            // This function is primarily for setting up current round visualization (balls, countdown)
-            // It should NOT hide the winner display if a winner from a previous round is meant to be shown.
-            // The winner display persistence is handled by updateUI's lastLotteryResult check.
-
-            // Always clear current balls and add new ones for the current round
-            ballArea.innerHTML = ''; // Clear existing balls
-            visualizationBalls = []; // Reset visualizationBalls array
-            startContinuousVisualizationAnimation(); // Ensure animation is running for current players
-
-            // Populate balls with current players
-            players.forEach(playerAddress => addVisualizationBall(playerAddress, true)); // true for isInitialLoad
-
-            // Update prize pool display
-            visualizationCurrentPrizePool = parseFloat(prizePoolFormatted);
-            visualizationCurrentPrizePoolDisplay.textContent = `Current Prize Pool: ${visualizationCurrentPrizePool.toLocaleString()} TARA`;
-
-            // Start countdown for visualization
-            startVisualizationCountdown(roundEndTimeSeconds);
-
-            // Set message based on current round status, but allow updateUI to override for persistent winner
-            if (isAcceptingEntries) {
-                visualizationMessage.textContent = `Tickets in draw: ${visualizationBalls.length}`;
-            } else {
-                visualizationMessage.textContent = `Round closed. Waiting for new round. Tickets: ${visualizationBalls.length}`;
-            }
-        }
-
-
-        // New helper function to encapsulate event listener setup for contract events
-        function setupContractEventListeners() {
-            // Only add if not already added to prevent multiple listeners
-            if (lotteryContract && !lotteryContract.listeners("TicketPurchased").length) {
-                lotteryContract.on("TicketPurchased", (lotteryId, player, numTickets, totalAmount, event) => {
-                    console.log(`Event: TicketPurchased - Player: ${player}, Tickets: ${numTickets}`);
-                    for (let i = 0; i < numTickets.toNumber(); i++) {
-                        addVisualizationBall(player);
-                    }
-                    updateUI(); // Re-fetch all data to ensure consistency
-                });
-            }
-            if (lotteryContract && !lotteryContract.listeners("WinnerPicked").length) {
-                lotteryContract.on("WinnerPicked", async (lotteryId, winner, prizeAmount, event) => {
-                    console.log(`Event: WinnerPicked - Lottery ID ${lotteryId}, Winner ${winner}, Prize ${ethers.utils.formatEther(prizeAmount)} TARA`);
-                    
-                    // Update lastLotteryResult immediately from the event
-                    lastLotteryResult = {
-                        lotteryId: lotteryId.toString(),
-                        winner: winner,
-                        prizeAmount: ethers.utils.formatEther(prizeAmount)
-                    };
-
-                    simulateDrawEvent(winner, ethers.utils.formatEther(prizeAmount));
-                    showPopup(`Lottery ID ${lotteryId} Winner: ${truncateAddress(winner)} won ${ethers.utils.formatEther(prizeAmount)} TARA!`);
-                    
-                    // --- FIX: Re-fetch past winners to ensure the array is updated before UI refresh ---
-                    await fetchPastWinnersFromContractEvents(); 
-                    // --- END FIX ---
-                    
-                    updateUI(); // Re-fetch all data to ensure consistency
-                });
-            }
-            if (lotteryContract && !lotteryContract.listeners("LotteryRoundStarted").length) {
-                lotteryContract.on("LotteryRoundStarted", async (lotteryId, roundEndTime, durationSeconds, event) => { // Added async
-                    console.log(`Event: LotteryRoundStarted - Lottery ID ${lotteryId}, Round End Time ${roundEndTime.toNumber()}, Duration ${durationSeconds.toNumber()}`);
-                    countdownEndTime = roundEndTime.toNumber();
-                    startCountdownTimer();
-                    resetVisualizationDisplay(); // Reset visualization for new round, including hiding winner display
-                    startContinuousVisualizationAnimation(); // Restart bouncing
-                    showPopup(`New Round (ID ${lotteryId}) Started! Entries are now Open!`);
-                    await fetchPastWinnersFromContractEvents(); // Ensure past winners are re-fetched for new round context
-                    updateUI(); // Re-fetch all data to ensure consistency
-                });
-            }
-            if (lotteryContract && !lotteryContract.listeners("RoundFullyRefunded").length) {
-                lotteryContract.on("RoundFullyRefunded", async (lotteryId, event) => {
-                    console.log(`Event: RoundFullyRefunded - Lottery ID ${lotteryId} has been fully refunded.`);
-                    showPopup(`Lottery ID ${lotteryId} has been fully refunded!`);
-                    updateUI(); // Re-fetch all data to ensure consistency
-                });
-            }
-            if (lotteryContract && !lotteryContract.listeners("RefundIssued").length) {
-                lotteryContract.on("RefundIssued", (lotteryId, player, amount, event) => {
-                    console.log(`Event: RefundIssued - Lottery ID ${lotteryId}, Player ${player}, Amount ${ethers.utils.formatEther(amount)} TARA`);
-                    // This event can be very frequent if many players are refunded.
-                    // Only show popup for the current user if they are the one being refunded.
-                    if (userAddress && player.toLowerCase() === userAddress.toLowerCase() && amount.gt(0)) {
-                        showPopup(`You received a refund of ${ethers.utils.formatEther(amount)} TARA for Lottery ID ${lotteryId}!`);
-                    }
-                    // No full UI update here to avoid spamming, RoundFullyRefunded handles the main refresh.
-                });
-            }
-        }
-
-
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Initial setup for main DApp countdown (will be updated by updateUI)
-            startCountdownTimer(); 
-            
-            await fetchTaraPrice();
-            fetchChdpuPriceAndBurnData();
-
-            // Combined interval for price/burn data and full UI refresh
-            setInterval(async () => {
-                await fetchTaraPrice();
-                await fetchChdpuPriceAndBurnData(); // Ensure this completes before UI update
-                // Check if provider is still valid, if not, try to re-initialize
-                if (!provider || !lotteryContract) {
-                    console.warn("Provider or contract not initialized in interval. Attempting re-initialization.");
-                    await initializeProviderAndNetwork();
-                }
-                updateUI(); // Explicitly call updateUI to refresh all data
-            }, BURN_TRACKER_REFRESH_INTERVAL_MS);
-
-            async function initializeProviderAndNetwork() {
-                let success = false;
-                let rpcUrls = [PRIMARY_RPC_URL, FALLBACK_RPC_URL];
-
-                for (let i = 0; i < rpcUrls.length; i++) {
-                    const url = rpcUrls[i];
-                    try {
-                        provider = new ethers.providers.JsonRpcProvider(url);
-                        console.log(`Attempting to connect to RPC: ${url}`);
-                        
-                        // Force network detection and wait for it
-                        const network = await provider.getNetwork();
-                        console.log(`Successfully detected network: ${network.chainId}`);
-
-                        if (network.chainId === TARAXA_MAINNET_CHAIN_ID) {
-                            lotteryContract = new ethers.Contract(TARA_LOTTERY_CONTRACT_ADDRESS, TARA_LOTTERY_ABI, provider);
-                            setStatus("Network detected. Fetching lottery details...");
-                            await fetchPastWinnersFromContractEvents();
-                            updateUI(); // Initial UI update after successful network detection
-                            success = true;
-                            break; // Exit loop on success
-                        } else {
-                            setStatus(`Please switch your wallet to Taraxa Mainnet (Chain ID ${TARAXA_MAINNET_CHAIN_ID}). Current network: ${network.chainId}`, true);
-                            // Do not break, allow trying next RPC if this one is just wrong network
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to connect to RPC (${url}): ${error.message}`);
-                        if (error.code === ethers.errors.NETWORK_ERROR) {
-                            setStatus(`Network error connecting to ${url}. Trying next RPC...`, true);
-                        } else {
-                            setStatus(`Error connecting to ${url}: ${error.message}. Trying next RPC...`, true);
-                        }
-                    }
+                    lastPrizeAmount.textContent = 'N/A';
+                    lastPrizeWinner.textContent = '';
+                    currentWinnerSpan.textContent = 'N/A';
+                    currentWinnerAmountSpan.textContent = '';
                 }
 
-                if (!success) {
-                    setStatus("Could not connect to Taraxa network using any RPC. Please check your internet connection and RPC URLs.", true);
-                    enterLotteryBtn.disabled = true;
-                    pickWinnerBtn.disabled = true;
-                    startNewRoundBtn.disabled = true;
-                    setTicketPriceBtn.disabled = true;
-                    newTicketPriceInput.disabled = true; // Disable input on connection failure
-                    processRefundsBtn.disabled = true;
-                    managerActionsSection.style.display = 'none';
-                    communityRefundActionsSection.style.display = 'none';
-                    chdpuRewardsSection.style.display = 'none';
-                    resetVisualizationDisplay();
-                    visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
-                    provider = null; // Ensure provider is null if all attempts fail
-                } else {
-                    // Set up event listeners for subsequent network changes
-                    // Only add if not already added to prevent multiple instances
-                    if (provider && !provider.listeners('network').length) {
-                        provider.on('network', async (newNetwork, oldNetwork) => {
-                            if (oldNetwork) {
-                                console.log(`Network changed from ${oldNetwork ? oldNetwork.chainId : 'N/A'} to ${newNetwork.chainId}`);
-                            } else {
-                                console.log(`Network detected: ${newNetwork.chainId}`);
-                            }
-                            if (newNetwork.chainId === TARAXA_MAINNET_CHAIN_ID) {
-                                lotteryContract = new ethers.Contract(TARA_LOTTERY_CONTRACT_ADDRESS, TARA_LOTTERY_ABI, provider);
-                                setStatus("Network changed to Taraxa Mainnet. Refreshing UI...");
-                                await fetchPastWinnersFromContractEvents();
-                                updateUI(); // Re-fetch all data to ensure consistency
-                            } else {
-                                setStatus(`Please switch your wallet to Taraxa Mainnet (Chain ID ${TARAXA_MAINNET_CHAIN_ID}). Current network: ${newNetwork.chainId}`, true);
-                                enterLotteryBtn.disabled = true;
-                                pickWinnerBtn.disabled = true;
-                                startNewRoundBtn.disabled = true;
-                                setTicketPriceBtn.disabled = true;
-                                newTicketPriceInput.disabled = true; // Disable input on wrong network
-                                processRefundsBtn.disabled = true;
-                                managerActionsSection.style.display = 'none';
-                                communityRefundActionsSection.style.display = 'none';
-                                chdpuRewardsSection.style.display = 'none';
-                                resetVisualizationDisplay();
-                                visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
-                            }
-                        });
-                    }
-                    // Set up event listeners for contract events
-                    setupContractEventListeners();
-                }
-                return success;
-            }
-
-            const providerInitialized = await initializeProviderAndNetwork();
-
-            if (providerInitialized) {
-                if (typeof window.ethereum === 'undefined') {
-                    setStatus("Your wallet (e.g., Rabby or MetaMask) not detected. Please install it.", true);
-                    connectWalletBtn.disabled = true;
-                } else {
-                    if (window.ethereum.selectedAddress) {
-                        await connectWallet();
-                    }
-                }
-            }
-        });
-
-        async function connectWallet() {
-            try {
-                if (!window.ethereum) {
-                    throw new Error("Your wallet not found. Please install it.");
-                }
-
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
-                
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                const currentNetworkId = parseInt(chainId, 16);
-
-                if (currentNetworkId !== TARAXA_MAINNET_CHAIN_ID) {
-                    setStatus(`Please switch your wallet to Taraxa Mainnet (Chain ID ${TARAXA_MAINNET_CHAIN_ID}).`, true);
-                    walletConnectSection.classList.remove('hidden');
-                    connectedAccountDisplay.classList.add('hidden');
-                    resetVisualizationDisplay();
-                    visualizationMessage.textContent = "Please connect to Taraxa Mainnet.";
-                    return;
-                }
-
-                signer = provider.getSigner();
-                lotteryContract = new ethers.Contract(TARA_LOTTERY_CONTRACT_ADDRESS, TARA_LOTTERY_ABI, signer);
-
-                walletConnectSection.classList.add('hidden');
-                connectedAccountDisplay.classList.remove('hidden');
-                connectedAddressText.textContent = userAddress;
-                connectedNetworkIdText.textContent = currentNetworkId;
-
-                setupContractEventListeners();
-
-                setStatus("Wallet connected. Fetching personalized details...");
-                await fetchPastWinnersFromContractEvents();
-                updateUI();
-
-                window.ethereum.on('accountsChanged', (accounts) => {
-                    userAddress = accounts[0];
-                    if (userAddress) {
-                        connectedAddressText.textContent = userAddress;
-                        setStatus("Account changed. Updating UI...");
-                    } else {
-                        setStatus("Disconnected.", true);
-                        walletConnectSection.classList.remove('hidden');
-                        connectedAccountDisplay.classList.add('hidden');
-                        accountAddress.textContent = 'Not Connected';
-                        networkId.textContent = '';
-                    }
-                    updateUI();
-                });
-                window.ethereum.on('chainChanged', (chainId) => {
-                    const newNetworkId = parseInt(chainId, 16);
-                    connectedNetworkIdText.textContent = newNetworkId;
-                    setStatus(`Network changed to ${newNetworkId}. Please ensure it's Taraxa Mainnet.`, true);
-                    window.location.reload();
-                });
+                renderPastWinners(pastWinners);
+                renderBallVisualization(players, currentWinner);
 
             } catch (error) {
-                setStatus(`Wallet connection failed: ${error.message}`, true);
-                console.error(error);
-                enterLotteryBtn.disabled = true;
-                pickWinnerBtn.disabled = true;
-                startNewRoundBtn.disabled = true;
-                setTicketPriceBtn.disabled = true;
-                newTicketPriceInput.disabled = true; // Disable input on connection failure
-                processRefundsBtn.disabled = true;
-                managerActionsSection.style.display = 'none';
-                communityRefundActionsSection.style.display = 'none';
-                chdpuRewardsSection.style.display = 'none';
-                walletConnectSection.classList.remove('hidden');
-                connectedAccountDisplay.classList.add('hidden');
-                resetVisualizationDisplay();
-                visualizationMessage.textContent = "Wallet connection failed.";
+                console.error("Error updating UI:", error);
+                statusMessage.textContent = `Error fetching DApp data: ${error.message}. Please refresh.`;
+                statusMessage.className = 'status bg-red-900 border-l-4 border-red-600 text-red-300 p-2.5 sm:p-3 rounded-md mb-4 sm:mb-5 shadow-inner text-sm';
             }
         }
 
-        connectWalletBtn.addEventListener('click', connectWallet);
+        // --- Render Past Winners List ---
+        function renderPastWinners(winners) {
+            pastWinnersContainer.innerHTML = ''; // Clear previous entries
+            if (winners.length === 0) {
+                noPastWinnersMessage.style.display = 'block';
+                return;
+            } else {
+                noPastWinnersMessage.style.display = 'none';
+            }
 
-        enterLotteryBtn.addEventListener('click', async () => {
-            if (!signer || !lotteryContract || !lotteryContract.signer) {
-                setStatus("Please connect wallet fully and ensure signer is available.", true);
+            winners.forEach(winner => {
+                const winnerDiv = document.createElement('div');
+                winnerDiv.className = 'bg-gray-600 p-2 rounded-md mb-2 text-gray-200 text-sm flex justify-between items-center';
+                winnerDiv.innerHTML = `
+                    <div>
+                        <span class="font-bold text-green-300">Round ${winner.lotteryRound}:</span>
+                        <span class="break-all ml-1">${shortenAddress(winner.address)}</span>
+                    </div>
+                    <span class="font-bold text-yellow-300">${formatTARA(winner.prize)} TARA</span>
+                `;
+                pastWinnersContainer.appendChild(winnerDiv);
+            });
+            console.log("Rendering past winners. Current pastWinners array:", winners);
+        }
+
+        // --- Lottery Visualization ---
+        const ballColors = ['color-0', 'color-1', 'color-2', 'color-3', 'color-4', 'color-5'];
+
+        function renderBallVisualization(players, winnerAddress) {
+            ballArea.innerHTML = ''; // Clear previous balls
+            winnerDisplay.innerHTML = ''; // Clear previous winner display
+            visualizationMessage.style.display = 'none'; // Hide default message
+
+            if (players.length === 0) {
+                visualizationMessage.style.display = 'flex';
+                visualizationMessage.textContent = "Waiting for players...";
                 return;
             }
 
+            // Create and position player balls
+            players.forEach((player, index) => {
+                const ball = document.createElement('div');
+                ball.className = `ball ${ballColors[index % ballColors.length]}`;
+                ball.style.left = `${Math.random() * (ballArea.offsetWidth - 60)}px`;
+                ball.style.top = `${Math.random() * (ballArea.offsetHeight - 60)}px`;
+                ball.style.setProperty('--x', ball.style.left);
+                ball.style.setProperty('--y', ball.style.top);
+
+                const ballContent = document.createElement('span');
+                ballContent.className = 'ball-content';
+                ballContent.textContent = shortenAddress(player);
+                ball.appendChild(ballContent);
+                ballArea.appendChild(ball);
+
+                // Animate balls
+                animateBall(ball);
+            });
+
+            // Display winner ball if a winner exists
+            if (winnerAddress && winnerAddress !== ethers.constants.AddressZero) {
+                setTimeout(async () => {
+                    const winnerPrize = await lotteryContract.getContractTARABalance(); // Get current contract balance as prize
+                    ballArea.innerHTML = ''; // Clear all player balls
+                    const winnerBall = document.createElement('div');
+                    winnerBall.className = 'winner-ball';
+                    winnerBall.innerHTML = `
+                        <p>Winner!</p>
+                        <span class="address">${shortenAddress(winnerAddress)}</span>
+                        <span class="prize">${formatTARA(winnerPrize)} TARA</span>
+                    `;
+                    winnerDisplay.appendChild(winnerBall);
+                }, 2000); // Delay winner display slightly
+            }
+        }
+
+        function animateBall(ball) {
+            const maxX = ballArea.offsetWidth - ball.offsetWidth;
+            const maxY = ballArea.offsetHeight - ball.offsetHeight;
+
+            function moveBall() {
+                const targetX = Math.random() * maxX;
+                const targetY = Math.random() * maxY;
+
+                ball.style.setProperty('--target-x', `${targetX}px`);
+                ball.style.setProperty('--target-y', `${targetY}px`);
+
+                const duration = Math.random() * 3 + 2; // 2-5 seconds
+                ball.style.transition = `transform ${duration}s ease-in-out`;
+                ball.style.transform = `translate(${targetX}px, ${targetY}px)`;
+
+                setTimeout(moveBall, duration * 1000);
+            }
+            moveBall(); // Start initial movement
+        }
+
+        // --- Lottery Actions ---
+        async function enterLottery() {
+            if (!lotteryContract || !signer) {
+                showNotification("Please connect your wallet first.", "error");
+                return;
+            }
+
+            const numTickets = parseInt(numTicketsInput.value);
+            if (isNaN(numTickets) || numTickets < 1 || numTickets > 10) {
+                showNotification("Please enter a valid number of tickets (1-10).", "error");
+                return;
+            }
+
+            showLoadingOverlay("Buying tickets...");
             try {
-                const numTickets = parseInt(numTicketsInput.value);
-                if (isNaN(numTickets) || numTickets < 1 || numTickets > 10) {
-                    setStatus("Please enter a valid number of tickets between 1 and 10.", true);
-                    return;
-                }
+                const price = await lotteryContract.ticketPrice();
+                const totalCost = price.mul(numTickets);
 
-                const currentTicketPriceWei = await lotteryContract.ticketPrice();
-                const totalCost = currentTicketPriceWei.mul(numTickets);
-                const userTaraBalanceWei = await provider.getBalance(userAddress);
-                const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
-                const roundEndTimeContract = await lotteryContract.roundEndTime();
-                const currentTime = Math.floor(Date.now() / 1000);
-
-                if (userTaraBalanceWei.lt(totalCost)) {
-                    setStatus(`Cannot enter: Insufficient TARA balance to buy ${numTickets} tickets. Need ${ethers.utils.formatEther(totalCost)} TARA.`, true);
-                    return;
-                }
-                if (!isAcceptingEntriesContract) {
-                    setStatus("Cannot enter: Entries are currently closed by contract owner.", true);
-                    return;
-                }
-                if (currentTime >= roundEndTimeContract.toNumber()) {
-                    setStatus("Cannot enter: Entries are closed as the time limit has been reached for this round.", true);
-                    return;
-                }
-
-                setStatus(`Entering lottery with ${numTickets} tickets...`);
-                showLoadingSpinner();
                 const tx = await lotteryContract.enter(numTickets, { value: totalCost });
-                console.log(`Enter Lottery transaction sent: ${tx.hash}`);
-                await tx.wait();
-                setStatus(`Successfully entered the lottery with ${numTickets} tickets!`);
-                showPopup(`Bought ${numTickets} ticket(s)! Good Luck!`);
-                updateUI();
+                await tx.wait(); // Wait for the transaction to be mined
+
+                showNotification(`Successfully bought ${numTickets} ticket(s)!`, "success");
+                await updateUI(); // Refresh UI after transaction
             } catch (error) {
-                setStatus(`Entering lottery failed: ${error.message}. Please ensure you have enough TARA.`, true);
-                console.error("Enter lottery error:", error);
-                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+                console.error("Error entering lottery:", error);
+                showNotification(`Failed to buy tickets: ${error.message}`, "error");
             } finally {
-                hideLoadingSpinner();
-            }
-        });
-
-        pickWinnerBtn.addEventListener('click', async () => {
-            if (!signer || !lotteryContract || !lotteryContract.signer) {
-                setStatus("Please connect wallet fully and ensure signer is available.", true);
-                return;
-            }
-
-            const contractOwner = await lotteryContract.owner();
-            if (userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase()) {
-                setStatus("Only the contract owner can pick a winner.", true);
-                return;
-            }
-            
-            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
-            const roundEndTimeContract = await lotteryContract.roundEndTime();
-            const currentTime = Math.floor(Date.now() / 1000);
-            const playersCount = (await lotteryContract.getPlayers()).length;
-
-            if (isAcceptingEntriesContract) { 
-                setStatus("Cannot pick winner: Lottery is still open for entries. Wait for the round to end.", true);
-                return;
-            }
-            if (playersCount === 0) {
-                setStatus("Cannot pick winner: No players in the current lottery round.", true);
-                return;
-            }
-            if (currentTime < roundEndTimeContract.toNumber()) {
-                setStatus(`Cannot pick winner: Draw time has not yet arrived. Remaining: ${new Date((roundEndTimeContract.toNumber() - currentTime) * 1000).toISOString().substr(11, 8)}`, true);
-                return;
-            }
-
-            // Debugging log: Check if pickWinner is a function right before calling
-            console.log("Attempting to call pickWinner(). Current lotteryContract object:", lotteryContract);
-            if (typeof lotteryContract.pickWinner !== 'function') {
-                console.error("lotteryContract.pickWinner is NOT a function on the object! This indicates an ethers.js ABI parsing issue.");
-                setStatus("Error: pickWinner function not found on contract object. Please refresh the page and ensure your wallet is connected to Taraxa Mainnet.", true);
-                return;
-            }
-
-            try {
-                setStatus("Picking random winner...");
-                showLoadingSpinner();
-                const tx = await lotteryContract.pickWinner();
-                console.log(`Pick Winner transaction sent: ${tx.hash}`);
-                await tx.wait();
-                setStatus("Winner picked and prize distributed!");
-                updateUI();
-            }
-            catch (error) {
-                setStatus(`Picking winner failed: ${error.message}`, true);
-                console.error("Pick winner error:", error);
-                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
-            } finally {
-                hideLoadingSpinner();
-            }
-        });
-
-        startNewRoundBtn.addEventListener('click', async () => {
-            if (!signer || !lotteryContract || !lotteryContract.signer) {
-                setStatus("Please connect wallet fully and ensure signer is available.", true);
-                return;
-            }
-
-            const contractOwner = await lotteryContract.owner();
-            if (userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase()) {
-                setStatus("Only the contract owner can start a new round.", true);
-                return;
-            }
-
-            const canStart = await lotteryContract.canStartNewRound();
-            if (!canStart) {
-                setStatus("Cannot start new round: Contract logic prevents starting a new round at this time. Either pick a winner or process refunds if undrawn.", true);
-                return;
-            }
-            
-            try {
-                const roundDurationSeconds = parseInt(newRoundDurationSecondsInput.value);
-                if (isNaN(roundDurationSeconds) || roundDurationSeconds < 60) {
-                    setStatus("Please enter a valid round duration (minimum 60 seconds).", true);
-                    return;
-                }
-
-                setStatus(`Starting a new round with ${roundDurationSeconds} seconds duration...`);
-                showLoadingSpinner();
-                const tx = await lotteryContract.startNewRound(roundDurationSeconds);
-                console.log(`Start New Round transaction sent: ${tx.hash}`);
-                await tx.wait();
-                setStatus("New lottery round started successfully!");
-                updateUI();
-            } catch (error) {
-                setStatus(`Failed to start new round: ${error.message}`, true);
-                console.error("Start new round error:", error);
-                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
-            } finally {
-                hideLoadingSpinner();
-            }
-        });
-
-        setTicketPriceBtn.addEventListener('click', async () => {
-            if (!signer || !lotteryContract || !lotteryContract.signer) {
-                setStatus("Please connect wallet fully and ensure signer is available.", true);
-                return;
-            }
-
-            const contractOwner = await lotteryContract.owner();
-            if (userAddress.toLowerCase() !== CONTRACT_OWNER_ADDRESS.toLowerCase()) {
-                setStatus("Only the contract owner can set the ticket price.", true);
-                return;
-            }
-
-            const isAcceptingEntriesContract = await lotteryContract.isAcceptingEntries();
-            if (isAcceptingEntriesContract) {
-                setStatus("Cannot set ticket price during a live lottery round. Please wait for the round to end.", true);
-                return;
-            }
-
-            const newPriceString = newTicketPriceInput.value;
-            if (isNaN(parseFloat(newPriceString)) || parseFloat(newPriceString) <= 0) {
-                setStatus("Please enter a valid ticket price greater than 0.", true);
-                return;
-            }
-
-            try {
-                const newPriceWei = ethers.utils.parseEther(newPriceString);
-                setStatus(`Setting new ticket price to ${newPriceString} TARA...`);
-                showLoadingSpinner();
-                const tx = await lotteryContract.setTicketPrice(newPriceWei);
-                console.log(`Set Ticket Price transaction sent: ${tx.hash}`);
-                await tx.wait();
-                setStatus(`Ticket price successfully updated to ${newPriceString} TARA!`);
-                updateUI();
-            } catch (error) {
-                setStatus(`Failed to set new ticket price: ${error.message}`, true);
-                console.error("Set ticket price error:", error);
-                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
-            } finally {
-                hideLoadingSpinner();
-            }
-        });
-
-        // NEW: Function to check and update refund eligibility message/button
-        async function checkRefundEligibility() {
-            // Only attempt to check eligibility if a wallet is connected
-            if (!userAddress) {
-                communityRefundActionsSection.style.display = 'none'; // Hide if no wallet connected
-                refundEligibilityMessage.textContent = "Connect your wallet to check refund eligibility.";
-                processRefundsBtn.disabled = true;
-                return;
-            }
-
-            const lotteryIdToRefund = parseInt(refundLotteryIdInput.value);
-            const currentLotteryId = await lotteryContract.lotteryId();
-            const currentTime = Math.floor(Date.now() / 1000);
-            const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
-
-            processRefundsBtn.disabled = true; // Disable by default
-            communityRefundActionsSection.style.display = 'none'; // Hide by default until eligible
-
-            if (isNaN(lotteryIdToRefund) || lotteryIdToRefund < 1) {
-                refundEligibilityMessage.textContent = "Enter a Lottery ID to check refund eligibility.";
-                return;
-            }
-
-            if (lotteryIdToRefund >= currentLotteryId.toNumber()) {
-                refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is current or future. Refunds are only for past, undrawn rounds.`;
-                return;
-            }
-
-            try {
-                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
-                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
-                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
-
-                if (isRoundRefunded) {
-                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has already been refunded.`;
-                } else if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
-                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`;
-                } else if (currentTime < historicalRoundEndTime) {
-                    const remainingTime = historicalRoundEndTime - currentTime;
-                    const hours = Math.floor(remainingTime / 3600);
-                    const minutes = Math.floor((remainingTime % 3600) / 60);
-                    const seconds = remainingTime % 60;
-                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} has not ended yet. Time remaining: ${hours}h ${minutes}m ${seconds}s.`;
-                } else if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
-                    const remainingGraceTime = (historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) - currentTime;
-                    const hours = Math.floor(remainingGraceTime / 3600);
-                    const minutes = Math.floor((remainingGraceTime % 3600) / 60);
-                    const seconds = remainingGraceTime % 60;
-                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is in grace period. Refunds available in: ${hours}h ${minutes}m ${seconds}s.`;
-                } else {
-                    // All conditions met for refund eligibility
-                    refundEligibilityMessage.textContent = `Lottery ID ${lotteryIdToRefund} is eligible for refunds! Click the button to process.`;
-                    processRefundsBtn.disabled = false; // Enable the button
-                    communityRefundActionsSection.style.display = 'block'; // Make section visible
-                }
-            } catch (error) {
-                console.error(`Error checking refund eligibility for ID ${lotteryIdToRefund}:`, error);
-                refundEligibilityMessage.textContent = `Error checking eligibility for ID ${lotteryIdToRefund}. It might not be a valid past round.`;
+                hideLoadingOverlay();
             }
         }
 
-        processRefundsBtn.addEventListener('click', async () => {
-            if (!signer || !lotteryContract || !lotteryContract.signer) {
-                setStatus("Please connect wallet fully and ensure signer is available.", true);
+        async function pickWinner() {
+            if (!lotteryContract || !signer || currentAccount.toLowerCase() !== contractOwnerAddress.toLowerCase()) {
+                showNotification("You are not authorized to pick a winner (Owner Only).", "error");
                 return;
             }
 
-            const lotteryIdToRefund = parseInt(refundLotteryIdInput.value);
-            if (isNaN(lotteryIdToRefund) || lotteryIdToRefund < 1) {
-                setStatus("Please enter a valid Lottery ID to process refunds.", true);
-                return;
-            }
-
+            showLoadingOverlay("Picking winner...");
             try {
-                // Perform a final client-side check before sending transaction
-                const historicalRoundEndTime = (await lotteryContract.roundEndTimes(lotteryIdToRefund)).toNumber();
-                const historicalWinner = await lotteryContract.winners(lotteryIdToRefund);
-                const isRoundRefunded = await lotteryContract.roundRefunded(lotteryIdToRefund);
-                const REFUND_GRACE_PERIOD_SECONDS = (await lotteryContract.REFUND_GRACE_PERIOD_SECONDS()).toNumber();
-                const currentTime = Math.floor(Date.now() / 1000);
-
-                if (isRoundRefunded) {
-                    setStatus(`Lottery ID ${lotteryIdToRefund} has already been refunded.`, true);
-                    return;
-                }
-                if (historicalWinner !== '0x0000000000000000000000000000000000000000') {
-                    setStatus(`Lottery ID ${lotteryIdToRefund} had a winner (${truncateAddress(historicalWinner)}). No refunds needed.`, true);
-                    return;
-                }
-                if (currentTime < historicalRoundEndTime + REFUND_GRACE_PERIOD_SECONDS) {
-                    setStatus(`Lottery ID ${lotteryIdToRefund} is not yet eligible for refunds. Grace period not over.`, true);
-                    return;
-                }
-
-                setStatus(`Processing refunds for Lottery ID ${lotteryIdToRefund}...`);
-                showLoadingSpinner();
-                const tx = await lotteryContract.processUndrawnRefunds(lotteryIdToRefund);
-                console.log(`Process Refunds transaction sent: ${tx.hash}`);
+                const tx = await lotteryContract.pickWinner();
                 await tx.wait();
-                setStatus(`Refund process initiated for Lottery ID ${lotteryIdToRefund}. Funds will be sent to eligible players.`);
-                updateUI(); // Refresh UI to reflect changes
+
+                showNotification("Winner picked successfully!", "success");
+                await updateUI();
             } catch (error) {
-                setStatus(`Failed to process refunds: ${error.message}`, true);
-                console.error("Process refunds error:", error);
-                console.error("Full Ethers.js error object:", JSON.stringify(error, null, 2));
+                console.error("Error picking winner:", error);
+                showNotification(`Failed to pick winner: ${error.message}`, "error");
             } finally {
-                hideLoadingSpinner();
+                hideLoadingOverlay();
+            }
+        }
+
+        async function startNewRound() {
+            if (!lotteryContract || !signer || currentAccount.toLowerCase() !== contractOwnerAddress.toLowerCase()) {
+                showNotification("You are not authorized to start a new round (Owner Only).", "error");
+                return;
+            }
+
+            // You might want to get the round duration from an input or a predefined value
+            const roundDurationSeconds = 120; // Example: 2 minutes for testing, adjust as needed
+
+            showLoadingOverlay("Starting new round...");
+            try {
+                const tx = await lotteryContract.startNewRound(roundDurationSeconds);
+                await tx.wait();
+
+                showNotification("New lottery round started!", "success");
+                await updateUI();
+            } catch (error) {
+                console.error("Error starting new round:", error);
+                showNotification(`Failed to start new round: ${error.message}`, "error");
+            } finally {
+                hideLoadingOverlay();
+            }
+        }
+
+        async function collectOwnerFees() {
+            if (!lotteryContract || !signer || currentAccount.toLowerCase() !== contractOwnerAddress.toLowerCase()) {
+                showNotification("You are not authorized to collect fees (Owner Only).", "error");
+                return;
+            }
+
+            showLoadingOverlay("Collecting owner fees...");
+            try {
+                const tx = await lotteryContract.collectOwnerFees();
+                await tx.wait();
+
+                showNotification("Owner fees collected successfully!", "success");
+                await updateUI();
+            } catch (error) {
+                console.error("Error collecting fees:", error);
+                showNotification(`Failed to collect fees: ${error.message}`, "error");
+            } finally {
+                hideLoadingOverlay();
+            }
+        }
+
+
+        // --- Initialize on Page Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initial UI update with placeholder data
+            await updateUI();
+
+            // Event Listeners
+            connectWalletBtn.addEventListener('click', connectWallet);
+            refreshDetailsBtn.addEventListener('click', updateUI);
+            enterLotteryBtn.addEventListener('click', enterLottery);
+            pickWinnerBtn.addEventListener('click', pickWinner);
+            startNewRoundBtn.addEventListener('click', startNewRound);
+            collectFeesBtn.addEventListener('click', collectOwnerFees);
+
+            // Handle scroll to past winners
+            document.getElementById('resultsOfLastDrawBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('pastWinnersList').scrollIntoView({ behavior: 'smooth' });
+            });
+            // Handle scroll to burn tracker
+            document.querySelector('a[href="#burnTrackerSection"]').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('burnTrackerSection').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Attempt to auto-connect if MetaMask is already connected
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                await connectWallet();
             }
         });
 
-        // Add event listener for refundLotteryId input to update eligibility message
-        refundLotteryIdInput.addEventListener('input', async () => {
-            if (lotteryContract && userAddress) { // Only check if contract is initialized AND wallet is connected
-                await checkRefundEligibility();
-            } else {
-                refundEligibilityMessage.textContent = "Connect your wallet to check refund eligibility.";
-                processRefundsBtn.disabled = true;
-                communityRefundActionsSection.style.display = 'none'; // Hide if no contract or no wallet
+        // Update countdown every second
+        setInterval(async () => {
+            if (lotteryContract && provider) { // Ensure provider is available
+                try {
+                    const block = await provider.getBlock("latest");
+                    const currentTimestamp = block.timestamp;
+                    const roundEndTime = await lotteryContract.roundEndTime();
+                    if (roundEndTime.gt(currentTimestamp)) {
+                        const remainingSeconds = roundEndTime.sub(currentTimestamp).toNumber();
+                        let hours = Math.floor(remainingSeconds / 3600);
+                        let minutes = Math.floor((remainingSeconds % 3600) / 60);
+                        let seconds = remainingSeconds % 60;
+
+                        countdownTimer.textContent = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+                    } else {
+                        countdownTimer.textContent = "Draw time reached!";
+                    }
+                } catch (error) {
+                    console.warn("Error in countdown interval:", error);
+                    countdownTimer.textContent = "Error fetching time!";
+                }
             }
-        });
+        }, 1000);
 
-
-        refreshDetailsBtn.addEventListener('click', updateUI);
-
-        // Toggle players list visibility
-        togglePlayersListBtn.addEventListener('click', () => {
-            if (playersList.style.display === 'none' || playersList.style.display === '') {
-                playersList.style.display = 'block';
-                togglePlayersListBtn.textContent = 'Hide All Tickets';
-            } else {
-                playersList.style.display = 'none';
-                togglePlayersListBtn.textContent = 'Show All Tickets';
-            }
-        });
-
-        // Add event listener for numTickets input to update UI on change
-        numTicketsInput.addEventListener('input', updateUI);
-
+        // Periodically refresh UI data (e.g., every 30 seconds)
+        setInterval(updateUI, 30000);
     </script>
 </body>
 </html>
